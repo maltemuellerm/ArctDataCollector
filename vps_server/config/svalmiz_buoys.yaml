@@ -1,0 +1,25 @@
+thredds:
+  nc_url: "https://thredds.met.no/thredds/fileServer/metusers/jeanr/misc/2026_SvalMIZ/2026_KVS_SvalMIZ_positions_aftercalibration_with_tempcalibration_cleaned.nc"
+
+# For SvalMIZ 2026, sensors 1–3 are always in air/snow at the surface.
+# Sensor 4 (1-indexed) is always the first sensor embedded in sea ice,
+# so sensor_ice2: 4 is used for all buoys — this position becomes depth 0.00 m.
+buoys:
+  - { buoy_id: "2026_04_KVS_SvalMIZ_01", sensor_ice2: 4, active: true }
+  - { buoy_id: "2026_04_KVS_SvalMIZ_02", sensor_ice2: 4, active: true }
+  - { buoy_id: "2026_04_KVS_SvalMIZ_03", sensor_ice2: 4, active: true }
+  - { buoy_id: "2026_04_KVS_SvalMIZ_04", sensor_ice2: 4, active: true }
+  - { buoy_id: "2026_04_KVS_SvalMIZ_05", sensor_ice2: 4, active: true }
+  - { buoy_id: "2026_04_KVS_SvalMIZ_06", sensor_ice2: 4, active: true }
+  - { buoy_id: "2026_04_KVS_SvalMIZ_07", sensor_ice2: 4, active: true }
+  - { buoy_id: "2026_04_KVS_SvalMIZ_08", sensor_ice2: 4, active: true }
+  - { buoy_id: "2026_04_KVS_SvalMIZ_09", sensor_ice2: 4, active: true }
+  - { buoy_id: "2026_04_KVS_SvalMIZ_10", sensor_ice2: 4, active: true }
+  - { buoy_id: "2026_04_KVS_SvalMIZ_11", sensor_ice2: 4, active: true }
+  - { buoy_id: "2026_04_KVS_SvalMIZ_12", sensor_ice2: 4, active: true }
+  - { buoy_id: "2026_04_KVS_SvalMIZ_13", sensor_ice2: 4, active: true }
+  - { buoy_id: "2026_04_KVS_SvalMIZ_14", sensor_ice2: 4, active: true }
+  - { buoy_id: "2026_04_KVS_SvalMIZ_15", sensor_ice2: 4, active: true }
+  - { buoy_id: "2026_04_KVS_SvalMIZ_16", sensor_ice2: 4, active: true }
+  - { buoy_id: "2026_04_KVS_SvalMIZ_17", sensor_ice2: 4, active: true }
+  - { buoy_id: "2026_04_KVS_SvalMIZ_18", sensor_ice2: 4, active: true }

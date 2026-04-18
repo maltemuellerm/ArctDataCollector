@@ -3,6 +3,7 @@ const SHIPS_BASE      = IS_LOCAL ? "data/ships"      : "http://148.230.70.161/da
 const SIMBA_BASE      = IS_LOCAL ? "data/simba"      : "http://148.230.70.161/data/simba";
 const THERMISTOR_BASE = IS_LOCAL ? "data/thermistor" : "http://148.230.70.161/data/thermistor";
 const ARCTSUM_BASE    = IS_LOCAL ? "data/arctsum"    : "http://148.230.70.161/data/arctsum";
+const SVALMIZ_BASE    = IS_LOCAL ? "data/svalmiz"    : "http://148.230.70.161/data/svalmiz";
 
 // Shared colour palette — one colour per item id.
 // ArctSum buoys fall back to the campaign colour via TYPE_COLORS.
@@ -22,6 +23,7 @@ const TYPE_COLORS = {
   simba: "#f39c12",
   thermistor: "#27ae60",
   arctsum: "#7d3ac1",
+  svalmiz: "#c0764e",
 };
 function itemColor(item) {
   return ITEM_COLORS[item.id] || TYPE_COLORS[item.type] || "#0b6b8a";
@@ -127,6 +129,31 @@ async function loadAllArctsum() {
   const results = await Promise.allSettled(
     ARCTSUM.map(async (buoy) => {
       const rows = await _fetchCSV(`${ARCTSUM_BASE}/${buoy.id}_ts.csv`);
+      return { ...buoy, rows };
+    })
+  );
+  return results.filter((r) => r.status === "fulfilled").map((r) => r.value);
+}
+
+const SVALMIZ = [
+  "2026_04_KVS_SvalMIZ_01", "2026_04_KVS_SvalMIZ_02", "2026_04_KVS_SvalMIZ_03",
+  "2026_04_KVS_SvalMIZ_04", "2026_04_KVS_SvalMIZ_05", "2026_04_KVS_SvalMIZ_06",
+  "2026_04_KVS_SvalMIZ_07", "2026_04_KVS_SvalMIZ_08", "2026_04_KVS_SvalMIZ_09",
+  "2026_04_KVS_SvalMIZ_10", "2026_04_KVS_SvalMIZ_11", "2026_04_KVS_SvalMIZ_12",
+  "2026_04_KVS_SvalMIZ_13", "2026_04_KVS_SvalMIZ_14", "2026_04_KVS_SvalMIZ_15",
+  "2026_04_KVS_SvalMIZ_16", "2026_04_KVS_SvalMIZ_17", "2026_04_KVS_SvalMIZ_18",
+].map((id) => ({
+  type: "svalmiz",
+  name: id.replace("2026_04_KVS_", "").replace(/_/g, " "),
+  id,
+  latField: "latitude", lonField: "longitude", tsField: "time",
+  _tempBase: SVALMIZ_BASE,
+}));
+
+async function loadAllSvalMIZ() {
+  const results = await Promise.allSettled(
+    SVALMIZ.map(async (buoy) => {
+      const rows = await _fetchCSV(`${SVALMIZ_BASE}/${buoy.id}_ts.csv`);
       return { ...buoy, rows };
     })
   );

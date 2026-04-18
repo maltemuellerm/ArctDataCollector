@@ -62,6 +62,17 @@ else
   echo "  No ArctSum CSVs found, skipping."
 fi
 
+CSV_SVALMIZ_SRC="${LOCAL_CSV_DIR}/svalmiz"
+CSV_SVALMIZ_DST="${WEBSITE_DIR}/data/svalmiz"
+if ls "${CSV_SVALMIZ_SRC}"/*.csv 1>/dev/null 2>&1; then
+  echo "Syncing SvalMIZ buoy CSVs into website/data/svalmiz/ ..."
+  mkdir -p "${CSV_SVALMIZ_DST}"
+  cp "${CSV_SVALMIZ_SRC}"/*.csv "${CSV_SVALMIZ_DST}/"
+  echo "  $(ls "${CSV_SVALMIZ_DST}"/*.csv | wc -l) SvalMIZ CSV files ready."
+else
+  echo "  No SvalMIZ CSVs found, skipping."
+fi
+
 echo "Starting local server on http://localhost:${PORT}"
 echo "Press Ctrl-C to stop."
 cd "${WEBSITE_DIR}"

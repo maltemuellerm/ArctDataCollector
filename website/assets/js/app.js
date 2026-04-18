@@ -50,6 +50,8 @@ function buildCard(item, tStart, tEnd) {
     ? `<span class="obs-tag simba-tag">SIMBA</span>`
     : item.type === "arctsum"
     ? `<span class="obs-tag arctsum-tag">ArctSum</span>`
+    : item.type === "svalmiz"
+    ? `<span class="obs-tag svalmiz-tag">SvalMIZ</span>`
     : `<span class="obs-tag thermistor-tag">BUOY</span>`;
 
   const dotClass = isCurrentlyActive(item) ? "green" : "grey";
@@ -75,7 +77,7 @@ function buildCard(item, tStart, tEnd) {
     const pres = row["barometric pressure (hPa)"];
     if (temp) metrics += `<span>\uD83C\uDF21\uFE0F ${parseFloat(temp).toFixed(2)}\u00b0C</span>`;
     if (pres) metrics += `<span>&#8853; ${parseFloat(pres).toFixed(1)} hPa</span>`;
-  } else if (item.type === "arctsum") {
+  } else if (item.type === "arctsum" || item.type === "svalmiz") {
     const temp = row["air_temp_C"];
     const hs   = row["wave_height_m"];
     if (temp) metrics += `<span>\uD83C\uDF21\uFE0F ${parseFloat(temp).toFixed(2)}\u00b0C</span>`;
@@ -118,7 +120,7 @@ function selectItem(item) {
 
   if (item.type === "ship")        renderShipDetail(filtered);
   else if (item.type === "simba")  renderBuoyDetail(filtered);
-  else if (item.type === "arctsum") renderArctsumDetail(filtered);
+  else if (item.type === "arctsum" || item.type === "svalmiz") renderArctsumDetail(filtered);
   else                             renderThermistorDetail(filtered);
 }
 
@@ -143,17 +145,17 @@ async function init() {
   const statusEl   = document.getElementById("status");
   const mapSection = document.getElementById("map-section");
 
-  let ships, buoys, thermistors, arctsum;
+  let ships, buoys, thermistors, arctsum, svalmiz;
   try {
-    [ships, buoys, thermistors, arctsum] = await Promise.all([
-      loadAllShips(), loadAllBuoys(), loadAllThermistors(), loadAllArctsum()
+    [ships, buoys, thermistors, arctsum, svalmiz] = await Promise.all([
+      loadAllShips(), loadAllBuoys(), loadAllThermistors(), loadAllArctsum(), loadAllSvalMIZ()
     ]);
   } catch (err) {
     statusEl.textContent = "Failed to load data: " + err.message;
     return;
   }
 
-  const allItems = [...ships, ...buoys, ...thermistors, ...arctsum];
+  const allItems = [...ships, ...buoys, ...thermistors, ...arctsum, ...svalmiz];
   if (!allItems.length) { statusEl.textContent = "No data available."; return; }
   statusEl.style.display = "none";
 
@@ -193,6 +195,7 @@ async function init() {
     ["buoy-cards", buoys],
     ["thermistor-cards", thermistors],
     ["arctsum-cards", arctsum],
+    ["svalmiz-cards", svalmiz],
   ];
 
   function onSliderChange() {

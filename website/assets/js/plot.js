@@ -199,9 +199,10 @@ async function renderThermistorDetail(buoy) {
 async function renderArctsumDetail(buoy) {
   // Lazy-load the TEMP CSV (temperature string profile, hourly)
   const orig = buoy._orig || buoy;
+  const tempBase = orig._tempBase || ARCTSUM_BASE;
   if (!orig._allTempRows) {
     try {
-      orig._allTempRows = await _fetchCSV(`${ARCTSUM_BASE}/${buoy.id}_temp.csv`);
+      orig._allTempRows = await _fetchCSV(`${tempBase}/${buoy.id}_temp.csv`);
     } catch (e) {
       orig._allTempRows = [];
     }
