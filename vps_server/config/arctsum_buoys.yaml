@@ -1,0 +1,25 @@
+thredds:
+  nc_url: "https://thredds.met.no/thredds/fileServer/metusers/jeanr/misc/2025_ArctSum/2025_KVS_ArctSum_withpositions_with_tempcalibration_cleaned.nc"
+
+# sensor_ice2: 1-indexed position of first sensor embedded in ice
+# Used to re-centre depth axis (this position becomes depth=0.00 m)
+buoys:
+  - { buoy_id: "2025_08_KVS_ArctSum_01", sensor_ice2: 6, active: true }
+  - { buoy_id: "2025_08_KVS_ArctSum_02", sensor_ice2: 5, active: true }
+  - { buoy_id: "2025_08_KVS_ArctSum_03", sensor_ice2: 4, active: true }
+  - { buoy_id: "2025_08_KVS_ArctSum_04", sensor_ice2: 5, active: true }
+  - { buoy_id: "2025_08_KVS_ArctSum_05", sensor_ice2: 4, active: true }
+  - { buoy_id: "2025_08_KVS_ArctSum_06", sensor_ice2: 5, active: true }
+  - { buoy_id: "2025_08_KVS_ArctSum_07", sensor_ice2: 5, active: true }
+  - { buoy_id: "2025_08_KVS_ArctSum_08", sensor_ice2: 6, active: true }
+  - { buoy_id: "2025_08_KVS_ArctSum_09", sensor_ice2: 5, active: true }
+  - { buoy_id: "2025_08_KVS_ArctSum_10", sensor_ice2: 4, active: true }
+  - { buoy_id: "2025_08_KVS_ArctSum_11", sensor_ice2: 5, active: true }
+  - { buoy_id: "2025_08_KVS_ArctSum_12", sensor_ice2: 5, active: true }
+  - { buoy_id: "2025_08_KVS_ArctSum_13", sensor_ice2: 6, active: true }
+  - { buoy_id: "2025_08_KVS_ArctSum_14", sensor_ice2: 6, active: true }
+  - { buoy_id: "2025_08_KVS_ArctSum_15", sensor_ice2: 6, active: true }
+  - { buoy_id: "2025_08_KVS_ArctSum_16", sensor_ice2: 5, active: true }
+  - { buoy_id: "2025_08_KVS_ArctSum_17", sensor_ice2: 6, active: true }
+  - { buoy_id: "2025_08_KVS_ArctSum_18", sensor_ice2: 5, active: true }
+  - { buoy_id: "2025_08_KVS_ArctSum_19", sensor_ice2: 5, active: true }

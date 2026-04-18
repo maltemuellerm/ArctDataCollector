@@ -1,0 +1,13 @@
+[Unit]
+Description=Fetch Sea Ice Portal thermistor chain buoy data
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/arct-collector
+ExecStart=/opt/arct-collector/.venv/bin/python3 /opt/arct-collector/scripts/fetch_thermistor_data.py
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1

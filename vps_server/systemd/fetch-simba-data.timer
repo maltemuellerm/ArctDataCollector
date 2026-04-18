@@ -1,0 +1,11 @@
+[Unit]
+Description=Fetch SIMBA buoy data every 6 hours
+Requires=fetch-simba-data.service
+
+[Timer]
+OnBootSec=6min
+OnUnitActiveSec=6h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

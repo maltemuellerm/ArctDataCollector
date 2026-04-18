@@ -1,0 +1,306 @@
+﻿1. On RockBlock
+
+
+-> Set up that it sends messages to HTTP_POST
+https://openmetbuoy-arctic.com/rockblock-endpoint.php 
+
+
+Script rockblock-endpoint.php:
+
+
+
+
+<?php
+// === CONFIGURATION ===
+
+
+// URL of your Flask decoder API running on the VPS
+$decoder_api_url = "http://148.230.70.161:8080/decode";  // Replace with your VPS IP or domain
+
+
+
+
+// === GET POST DATA FROM ROCKBLOCK ===
+
+
+$data_hex = $_POST['data'] ?? '';
+$imei = $_POST['imei'] ?? '';
+$transmit_time = $_POST['transmit_time'] ?? '';
+$lat = $_POST['iridium_latitude'] ?? '';
+$lon = $_POST['iridium_longitude'] ?? '';
+
+
+// === SAFEGUARD: EXIT IF NO DATA ===
+if (empty($data_hex)) {
+    http_response_code(400);
+    echo "Missing data";
+    exit;
+}
+
+
+// === FORWARD TO VPS DECODER ===
+
+
+$payload = json_encode(['data' => $data_hex]);
+
+
+$ch = curl_init($decoder_api_url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+$decoded_json = curl_exec($ch);
+$curl_error = curl_error($ch);
+curl_close($ch);
+
+
+// === LOG TO FILE ===
+
+
+$log = "==== Message received at " . date("Y-m-d H:i:s") . " ====\n";
+$log .= "IMEI: $imei\n";
+$log .= "Time: $transmit_time\n";
+$log .= "Lat: $lat | Lon: $lon\n";
+$log .= "Hex: $data_hex\n";
+$log .= "Sent to: $decoder_api_url\n";
+$log .= "Decoded JSON:\n$decoded_json\n";
+if ($curl_error) {
+    $log .= "cURL error: $curl_error\n";
+}
+$log .= "\n";
+
+
+file_put_contents(__DIR__ . "/rockblock-decoded.log", $log, FILE_APPEND);
+
+
+// === STORE IN master-decoded.json with LOCKING ===
+
+
+$decoded_entry = [
+    'imei' => $imei,
+    'transmit_time' => $transmit_time,
+    'iridium_latitude' => $lat,
+    'iridium_longitude' => $lon,
+    'decoded' => json_decode($decoded_json, true),
+];
+
+
+$master_json_file = __DIR__ . "/master-decoded.json";
+
+
+$fp = fopen($master_json_file, 'c+');  // Create if not exists, read/write
+if ($fp && flock($fp, LOCK_EX)) {
+    $existing = stream_get_contents($fp);
+    $entries = json_decode($existing, true);
+    if (!is_array($entries)) {
+        $entries = [];
+    }
+
+
+    $entries[] = $decoded_entry;
+
+
+    ftruncate($fp, 0);
+    rewind($fp);
+    fwrite($fp, json_encode($entries, JSON_PRETTY_PRINT));
+    fflush($fp);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+} else {
+    http_response_code(500);
+    echo "Could not lock or open master-decoded.json";
+    if ($fp) {
+        fclose($fp);
+    }
+    exit;
+}
+
+
+// === RESPOND TO ROCKBLOCK ===
+echo "OK";
+?>
+	
+
+2. VPS to run the decoder (python script)
+ssh root@148.230.70.161
+
+
+In directories /opt/decoder and /opt/decoder_venv [not so sure where the files need to be]
+
+
+Files: main.py and decoder_online.py
+
+
+File main.py:
+from flask import Flask, request, jsonify
+from decoder_online import decode_message
+
+
+app = Flask(__name__)
+
+
+@app.route("/decode", methods=["POST"])
+def decode():
+    data_hex = request.json.get("data")
+    kind, metadata, packets = decode_message(data_hex)
+    return jsonify([p.__dict__ for p in packets])
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
+
+
+	
+
+source /opt/decoder_venv/bin/activate
+cd /opt/decoder
+python3 main.py
+
+
+Now your VPS has a live endpoint at:
+
+
+http://<your-vps-ip>:8080/decode
+
+
+Use curl to test the endpoint: 
+curl -X POST http://148.230.70.161:8080/decode \
+  -H "Content-Type: application/json" \
+  -d '{"data":"470746b4878f688b630633f4a54c154698798f6888c206331e63441546946b8f68b20107335ba63b1546795d8f68442a0733ad48331546744f8f68e8390733a4862b154658418f687930073335d6241545"}'
+
+
+
+
+Create a systemd Service
+1. Create a service file
+sudo nano /etc/systemd/system/decoder-flask
+
+
+sudo nano /etc/systemd/system/decoder-flask.service
+
+
+
+
+[Unit]
+Description=Flask decoder for RockBLOCK
+After=network.target
+
+
+[Service]
+User=root
+WorkingDirectory=/opt/decoder
+ExecStart=/opt/decoder_venv/bin/python3 /opt/decoder/main.py
+Restart=always
+Environment=PYTHONUNBUFFERED=1
+
+
+[Install]
+WantedBy=multi-user.target
+	
+
+2. Reload and start the service
+
+
+sudo systemctl daemon-reexec  # Sometimes needed for VPS
+sudo systemctl daemon-reload
+sudo systemctl enable decoder-flask
+sudo systemctl start decoder-flask
+
+
+ 3. Check that it’s running
+sudo systemctl status decoder-flask
+
+
+4. Reboot Test (Optional)
+To confirm it restarts automatically:
+
+
+sudo reboot
+Then after the server reboots:
+
+
+curl -X POST http://<your-vps-ip>:8080/decode -H "Content-Type: application/json" -d '{"data":"<hex>"}
+
+
+
+
+5. Convert to geojson
+Put the following file into the mainfolder of the website. Then make it called with a cronjob so it does this conversion hourly:
+
+
+ generate_geojson.php 
+
+
+<?php
+// === CONFIGURATION ===
+
+
+// URLs and file paths
+$input_url = "https://openmetbuoy-arctic.com/master-decoded.json";
+$output_file = __DIR__ . "/decoded_fixes.geojson";
+
+
+// === FETCH JSON FROM URL ===
+$json_data = file_get_contents($input_url);
+if ($json_data === false) {
+    http_response_code(500);
+    echo "Failed to fetch JSON from $input_url";
+    exit;
+}
+
+
+// === PARSE AND PROCESS ===
+$data = json_decode($json_data, true);
+if (!is_array($data)) {
+    http_response_code(500);
+    echo "Invalid JSON structure.";
+    exit;
+}
+
+
+$features = [];
+
+
+foreach ($data as $entry) {
+    $imei = $entry["imei"] ?? null;
+    $transmit_time = $entry["transmit_time"] ?? null;
+    $decoded = $entry["decoded"] ?? null;
+
+
+    // If decoded is a list of fixes
+    if (is_array($decoded) && isset($decoded[0]["latitude"])) {
+        foreach ($decoded as $fix) {
+            if (!empty($fix["is_valid"])) {
+                $lat = $fix["latitude"];
+                $lon = $fix["longitude"];
+                $datetime = $fix["datetime_fix"] ?? null;
+
+
+                $features[] = [
+                    "type" => "Feature",
+                    "geometry" => [
+                        "type" => "Point",
+                        "coordinates" => [$lon, $lat]
+                    ],
+                    "properties" => [
+                        "imei" => $imei,
+                        "datetime_fix" => $datetime,
+                        "transmit_time" => $transmit_time
+                    ]
+                ];
+            }
+        }
+    }
+}
+
+
+// === BUILD FINAL GEOJSON ===
+$geojson = [
+    "type" => "FeatureCollection",
+    "features" => $features
+];
+
+
+// === WRITE TO FILE ===
+file_put_contents($output_file, json_encode($geojson, JSON_PRETTY_PRINT));
+echo "✅ GeoJSON with " . count($features) . " features saved to $output_file";
+?>

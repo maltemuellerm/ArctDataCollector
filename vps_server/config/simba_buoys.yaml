@@ -1,0 +1,19 @@
+# SIMBA ice buoy sources via the CryosphereInnovation API.
+# Add new buoys here as more deployment IDs become available.
+# The API key is stored separately in config/secrets.yaml (never commit that file).
+
+cryosphere_innovation:
+  base_url: "https://api.cryosphereinnovation.com/public/deployment/data"
+
+buoys:
+  - name: "SIMBA buoy 1"
+    deployment_id: "e11478e8-8bda-4494-a796-08b82334dfa0"
+    active: false
+
+  - name: "SIMBA buoy 2"
+    deployment_id: "fb39a488-4209-4fa1-8220-76a384960de5"
+    active: true
+
+  - name: "SIMBA buoy 3"
+    deployment_id: "759dbda3-f61f-4461-9cdd-cb717a49b45a"
+    active: true

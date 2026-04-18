@@ -1,0 +1,11 @@
+[Unit]
+Description=Fetch thermistor buoy data every 12 hours
+Requires=fetch-thermistor-data.service
+
+[Timer]
+OnBootSec=8min
+OnUnitActiveSec=12h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

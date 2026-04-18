@@ -1,0 +1,20 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Local website data (synced at runtime by dev_serve.sh)
+website/data/ships/
+website/data/simba/
+website/data/thermistor/
+website/data/arctsum/
+
+# VPS collected data (generated; not tracked in git)
+vps_server/data/
+
+# Logs
+vps_server/logs/
+*.log
+
+# Secrets — never commit
+vps_server/config/secrets.yaml

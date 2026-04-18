@@ -1,0 +1,13 @@
+[Unit]
+Description=Fetch CryosphereInnovation SIMBA buoy data
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/arct-collector
+ExecStart=/opt/arct-collector/.venv/bin/python3 /opt/arct-collector/scripts/fetch_simba_data.py
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1

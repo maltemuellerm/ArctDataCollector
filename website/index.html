@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Arctic Ship Observations</title>
+    <link rel="stylesheet" href="assets/css/styles.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js"></script>
+    <script src="https://unpkg.com/proj4leaflet@1.0.2/src/proj4leaflet.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-inner">
+        <h1>Arctic Observations</h1>
+        <p>Ship tracks (last 30 days), SIMBA, thermistor &amp; ArctSum25 ice buoys &mdash; click to explore</p>
+      </div>
+    </header>
+
+    <main class="layout">
+
+      <!-- Loading / error message -->
+      <p id="status" class="status-msg">Loading ship data&hellip;</p>
+
+      <!-- Geographic map: all ship tracks -->
+      <section class="card" id="map-section" style="display:none">
+        <div id="map-container"></div>
+        <!-- Time range slider -->
+        <div id="time-slider-box">
+          <div class="slider-labels">
+            <span id="slider-start-label"></span>
+            <span id="slider-range-label"></span>
+            <span id="slider-end-label"></span>
+          </div>
+          <div class="dual-slider">
+            <input type="range" id="slider-lo" min="0" max="1" step="1" value="0" />
+            <input type="range" id="slider-hi" min="0" max="1" step="1" value="1" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Ship quick-select cards -->
+      <div class="obs-group">
+        <h3 class="obs-heading">Ships</h3>
+        <div id="ship-cards" class="ship-cards"></div>
+      </div>
+
+      <!-- SIMBA ice buoy cards -->
+      <div class="obs-group">
+        <h3 class="obs-heading">SIMBA Ice Buoys</h3>
+        <div id="buoy-cards" class="ship-cards"></div>
+      </div>
+
+      <!-- Thermistor chain buoy cards -->
+      <div class="obs-group">
+        <h3 class="obs-heading">Thermistor Chain Buoys</h3>
+        <div id="thermistor-cards" class="ship-cards"></div>
+      </div>
+
+      <!-- ArctSum 2025 buoy cards -->
+      <div class="obs-group">
+        <h3 class="obs-heading">ArctSum 2025 Buoys</h3>
+        <div id="arctsum-cards" class="ship-cards compact"></div>
+      </div>
+
+      <!-- Detail subfigure (appears on click) -->
+      <section class="card detail-card" id="detail-section" style="display:none">
+        <div class="detail-header">
+          <span id="detail-title"></span>
+          <span id="detail-meta"></span>
+        </div>
+        <div id="plot-container"></div>
+      </section>
+
+    </main>
+
+    <script src="assets/js/csv-loader.js"></script>
+    <script src="assets/js/map.js"></script>
+    <script src="assets/js/plot.js"></script>
+    <script src="assets/js/app.js"></script>
+  </body>
+</html>

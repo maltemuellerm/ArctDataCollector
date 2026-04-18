@@ -1,0 +1,23 @@
+# Ship observation sources via the EUMETNET eSurfMar portal.
+# URL is constructed as:  url_template with {wmo_id} replaced.
+# To add a ship: append an entry to the list and set active: true.
+
+eumetnet:
+  url_template: "https://esurfmar.meteo.fr/download/data_ptf_{wmo_id}.csv"
+
+ships:
+  - name: "Le Commandant Charcot"
+    wmo_id: "MBBJ7YM"
+    active: true
+
+  - name: "Tara Polar Station"
+    wmo_id: "SXZPW9C"
+    active: true
+
+  - name: "Polarstern"
+    wmo_id: "JKFA7QZ"
+    active: true
+
+  - name: "Oden"
+    wmo_id: "SMLQ"
+    active: true

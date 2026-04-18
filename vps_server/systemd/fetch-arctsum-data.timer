@@ -1,0 +1,11 @@
+[Unit]
+Description=Fetch ArctSum buoy data every 6 hours
+Requires=fetch-arctsum-data.service
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=6h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

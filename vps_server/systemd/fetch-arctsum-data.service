@@ -1,0 +1,13 @@
+[Unit]
+Description=Fetch ArctSum 2025 thermistor string buoy data from Thredds
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/arct-collector
+ExecStart=/opt/arct-collector/.venv/bin/python3 /opt/arct-collector/scripts/fetch_arctsum_data.py
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1

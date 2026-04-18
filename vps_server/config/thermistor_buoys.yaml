@@ -1,0 +1,13 @@
+seaiceportal:
+  base_url: "https://data.seaiceportal.de/data/buoys/processed"
+
+buoys:
+  - name: "Thermistor 2024T117"
+    buoy_id: "2024T117"
+    active: true
+  - name: "Thermistor 2025T141"
+    buoy_id: "2025T141"
+    active: true
+  - name: "Thermistor 2025T142"
+    buoy_id: "2025T142"
+    active: true

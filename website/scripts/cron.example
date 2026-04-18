@@ -1,0 +1,2 @@
+# Run conversion every hour.
+0 * * * * /usr/bin/php /var/www/html/website/scripts/generate_geojson.php

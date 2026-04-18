@@ -1,0 +1,12 @@
+server:
+  host: 0.0.0.0
+  port: 8080
+
+paths:
+  raw_data_dir: ./data/raw
+  csv_output_dir: ./data/processed/csv
+  logs_dir: ./logs
+
+ingestion:
+  allowed_sources:
+    - rockblock
