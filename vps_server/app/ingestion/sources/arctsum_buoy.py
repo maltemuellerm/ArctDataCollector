@@ -177,9 +177,24 @@ def _extract_buoy(ds, tr_idx, buoy_id, sensor_ice2,
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _mask_of(arr):
-    if hasattr(arr, "mask"):
-        return np.asarray(arr.mask, dtype=bool)
-    return np.zeros(len(arr), dtype=bool)
+    """Return a 1-D boolean mask the same length as *arr*.
+
+    numpy MaskedArray.mask can be a scalar (``True`` / ``np.ma.nomask``)
+    when all—or no—values are masked; broadcast it to the full length so
+    downstream boolean indexing is always safe.
+    """
+    n = len(arr)
+    if not hasattr(arr, "mask"):
+        return np.zeros(n, dtype=bool)
+    m = arr.mask
+    if m is np.ma.nomask or m is False:
+        return np.zeros(n, dtype=bool)
+    if m is True:
+        return np.ones(n, dtype=bool)
+    m = np.asarray(m, dtype=bool)
+    if m.shape == ():           # 0-d scalar wrapped in an array
+        return np.full(n, bool(m))
+    return m
 
 
 def _to_iso(seconds: np.ndarray, units: str) -> list[str]:
