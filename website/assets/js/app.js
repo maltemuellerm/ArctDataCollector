@@ -131,8 +131,12 @@ function rebuildCards(groups, tStart, tEnd) {
     const el = document.getElementById(containerId);
     el.innerHTML = "";
     items.forEach((item) => {
-      if (rowsInWindow(item, tStart, tEnd).length === 0) return; // hide if no data
       const card = buildCard(item, tStart, tEnd);
+      // Dim cards that have no data in the current window (but still show them)
+      if (rowsInWindow(item, tStart, tEnd).length === 0) {
+        card.style.opacity = "0.35";
+        card.title = "No data in selected time window";
+      }
       card.addEventListener("click", () => selectItem(item));
       el.appendChild(card);
     });
