@@ -52,6 +52,8 @@ function buildCard(item, tStart, tEnd) {
     ? `<span class="obs-tag arctsum-tag">ArctSum</span>`
     : item.type === "svalmiz"
     ? `<span class="obs-tag svalmiz-tag">SvalMIZ</span>`
+    : item.type === "iabp"
+    ? `<span class="obs-tag iabp-tag">IABP</span>`
     : `<span class="obs-tag thermistor-tag">BUOY</span>`;
 
   const dotClass = isCurrentlyActive(item) ? "green" : "grey";
@@ -82,6 +84,13 @@ function buildCard(item, tStart, tEnd) {
     const hs   = row["wave_height_m"];
     if (temp) metrics += `<span>\uD83C\uDF21\uFE0F ${parseFloat(temp).toFixed(2)}\u00b0C</span>`;
     if (hs)   metrics += `<span>\uD83C\uDF0A Hs ${parseFloat(hs).toFixed(2)} m</span>`;
+  } else if (item.type === "iabp") {
+    const ta  = row["air_temp"];
+    const ts  = row["surface_temp"];
+    const bp  = row["bp"];
+    if (ta)  metrics += `<span>\uD83C\uDF21\uFE0F ${parseFloat(ta).toFixed(1)}\u00b0C</span>`;
+    if (ts)  metrics += `<span>\u2744\uFE0F Ts ${parseFloat(ts).toFixed(1)}\u00b0C</span>`;
+    if (bp)  metrics += `<span>&#8853; ${parseFloat(bp).toFixed(1)} hPa</span>`;
   }
 
   card.innerHTML = `
@@ -121,6 +130,7 @@ function selectItem(item) {
   if (item.type === "ship")        renderShipDetail(filtered);
   else if (item.type === "simba")  renderBuoyDetail(filtered);
   else if (item.type === "arctsum" || item.type === "svalmiz") renderArctsumDetail(filtered);
+  else if (item.type === "iabp")   renderIabpDetail(filtered);
   else                             renderThermistorDetail(filtered);
 }
 
@@ -149,17 +159,17 @@ async function init() {
   const statusEl   = document.getElementById("status");
   const mapSection = document.getElementById("map-section");
 
-  let ships, buoys, thermistors, arctsum, svalmiz;
+  let ships, buoys, thermistors, arctsum, svalmiz, iabp;
   try {
-    [ships, buoys, thermistors, arctsum, svalmiz] = await Promise.all([
-      loadAllShips(), loadAllBuoys(), loadAllThermistors(), loadAllArctsum(), loadAllSvalMIZ()
+    [ships, buoys, thermistors, arctsum, svalmiz, iabp] = await Promise.all([
+      loadAllShips(), loadAllBuoys(), loadAllThermistors(), loadAllArctsum(), loadAllSvalMIZ(), loadAllIABP()
     ]);
   } catch (err) {
     statusEl.textContent = "Failed to load data: " + err.message;
     return;
   }
 
-  const allItems = [...ships, ...buoys, ...thermistors, ...arctsum, ...svalmiz];
+  const allItems = [...ships, ...buoys, ...thermistors, ...arctsum, ...svalmiz, ...iabp];
   if (!allItems.length) { statusEl.textContent = "No data available."; return; }
   statusEl.style.display = "none";
 
@@ -200,6 +210,7 @@ async function init() {
     ["thermistor-cards", thermistors],
     ["arctsum-cards", arctsum],
     ["svalmiz-cards", svalmiz],
+    ["iabp-cards", iabp],
   ];
 
   function onSliderChange() {

@@ -4,6 +4,7 @@ const SIMBA_BASE      = IS_LOCAL ? "data/simba"      : "http://148.230.70.161/da
 const THERMISTOR_BASE = IS_LOCAL ? "data/thermistor" : "http://148.230.70.161/data/thermistor";
 const ARCTSUM_BASE    = IS_LOCAL ? "data/arctsum"    : "http://148.230.70.161/data/arctsum";
 const SVALMIZ_BASE    = IS_LOCAL ? "data/svalmiz"    : "http://148.230.70.161/data/svalmiz";
+const IABP_BASE       = IS_LOCAL ? "data/iabp"       : "http://148.230.70.161/data/iabp";
 
 // Shared colour palette — one colour per item id.
 // ArctSum buoys fall back to the campaign colour via TYPE_COLORS.
@@ -24,6 +25,7 @@ const TYPE_COLORS = {
   thermistor: "#27ae60",
   arctsum: "#7d3ac1",
   svalmiz: "#c0764e",
+  iabp: "#1a7a4a",
 };
 function itemColor(item) {
   return ITEM_COLORS[item.id] || TYPE_COLORS[item.type] || "#0b6b8a";
@@ -155,6 +157,41 @@ async function loadAllSvalMIZ() {
     SVALMIZ.map(async (buoy) => {
       const rows = await _fetchCSV(`${SVALMIZ_BASE}/${buoy.id}_ts.csv`);
       return { ...buoy, rows };
+    })
+  );
+  return results.filter((r) => r.status === "fulfilled").map((r) => r.value);
+}
+
+async function loadAllIABP() {
+  // Fetch dynamic index of tracked buoys, then load each CSV
+  let index;
+  try {
+    const resp = await fetch(`${IABP_BASE}/_index.json`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    index = await resp.json();
+  } catch (e) {
+    console.warn("IABP index unavailable:", e.message);
+    return [];
+  }
+
+  const results = await Promise.allSettled(
+    index.map(async (meta) => {
+      const rows = await _fetchCSV(`${IABP_BASE}/${meta.id}.csv`);
+      rows.sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+      return {
+        type: "iabp",
+        id:   meta.id,
+        name: meta.name || meta.id,
+        latField: "latitude",
+        lonField: "longitude",
+        tsField:  "time",
+        has_bp:   meta.has_bp,
+        has_ts:   meta.has_ts,
+        has_ta:   meta.has_ta,
+        owner:    meta.owner,
+        campaign: meta.campaign,
+        rows,
+      };
     })
   );
   return results.filter((r) => r.status === "fulfilled").map((r) => r.value);

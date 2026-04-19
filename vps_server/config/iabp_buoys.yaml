@@ -1,0 +1,300 @@
+# Active Arctic IABP buoys as of 2026-04-19
+# Managed by discover_iabp_buoys.py — do not manually reorder entries
+# Filters: lat>=65N, last report within 5 days, must have air temperature (Ta)
+# 34 buoys currently tracked
+
+buoys:
+  - buoy_id: "300025010543130"
+    wmo: "4601560"
+    buoy_type: "IMB"
+    owner: "USIABP"
+    campaign: "JOIS 2025"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: false
+    has_ta: true
+  - buoy_id: "300234060729780"
+    wmo: "5802060"
+    buoy_type: "Snow Buoy 127"
+    owner: "AWI"
+    campaign: "Polarstern"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: false
+    has_ta: true
+  - buoy_id: "300234063064350"
+    wmo: "4802502"
+    buoy_type: "AXIB"
+    owner: "EC"
+    campaign: "ICE-PPR(RDAF-USIABP)"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300234065495190"
+    wmo: "4801639"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    campaign: "USIABP"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300234068760770"
+    wmo: "4802664"
+    buoy_type: "SVP"
+    owner: "EC"
+    campaign: "ICE-PPR"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300234068762760"
+    wmo: "4801762"
+    buoy_type: "SVP-BA"
+    owner: "ECCC"
+    campaign: "RCAF"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300234068763720"
+    wmo: "4801763"
+    buoy_type: "SVP-BA"
+    owner: "ECCC"
+    campaign: "RCAF"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300434060729230"
+    wmo: "NA"
+    buoy_type: "IMB"
+    owner: "CRREL"
+    added: "2026-04-19"
+    has_bp: false
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534061096030"
+    wmo: "4601552"
+    buoy_type: "AXIB_51"
+    owner: "USIABP"
+    campaign: "USIABP"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534063482290"
+    wmo: "7801723"
+    buoy_type: "SVP-BA"
+    owner: "ECCC"
+    campaign: "RCAF(ICE-PPR)"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534063800110"
+    wmo: "2501590"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534063804120"
+    wmo: "4701550"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    campaign: "Healy"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534063804320"
+    wmo: "2501593"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534063806290"
+    wmo: "2501591"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534064484380"
+    wmo: "4804178"
+    buoy_type: "SVP-BA"
+    owner: "ECCC"
+    campaign: "RCAF(ICE-PPR)"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534065217050"
+    wmo: "2601520"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    campaign: "AK-ANG July"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534065217550"
+    wmo: "2601521"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    campaign: "AK-ANG July"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534065218030"
+    wmo: "2601523"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    campaign: "AK-ANG July"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534065218050"
+    wmo: "2601524"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    campaign: "AK-ANG July"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534065218550"
+    wmo: "2601525"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    campaign: "AK-ANG July"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534065218570"
+    wmo: "2601526"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    campaign: "AK-ANG July"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534065219550"
+    wmo: "2601529"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    campaign: "AK-ANG July"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534066611760"
+    buoy_type: "Snow Buoy"
+    owner: "AWI"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: false
+    has_ta: true
+  - buoy_id: "300534066612740"
+    buoy_type: "SVP"
+    owner: "AWI"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: false
+    has_ta: true
+  - buoy_id: "300534067120460"
+    wmo: "4601558"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    campaign: "NABOS(CSG Healy)"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534067128450"
+    wmo: "2601547"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    campaign: "AMOS(Healy)"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534067319090"
+    wmo: "4601557"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    campaign: "NABOS(CSG Healy)"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534067413570"
+    wmo: "2601546"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    campaign: "AMOS(Healy)"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534067418560"
+    wmo: "4601556"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    campaign: "NABOS(CSG Healy)"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534067419560"
+    wmo: "2601548"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    campaign: "AMOS(Healy)"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534067519510"
+    wmo: "4601555"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    campaign: "NABOS(CSG Healy)"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "300534067612700"
+    wmo: "4601554"
+    buoy_type: "AXIB"
+    owner: "USIABP"
+    campaign: "NABOS(CSG Healy)"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "301434061840390"
+    buoy_type: "SIMB3 2025G"
+    owner: "Dartmouth"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true
+  - buoy_id: "301434061843360"
+    buoy_type: "SIMB3 2025H"
+    owner: "Dartmouth"
+    added: "2026-04-19"
+    has_bp: true
+    has_ts: true
+    has_ta: true

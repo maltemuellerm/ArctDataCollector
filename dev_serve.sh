@@ -73,6 +73,19 @@ else
   echo "  No SvalMIZ CSVs found, skipping."
 fi
 
+CSV_IABP_SRC="${LOCAL_CSV_DIR}/iabp"
+CSV_IABP_DST="${WEBSITE_DIR}/data/iabp"
+if ls "${CSV_IABP_SRC}"/*.csv 1>/dev/null 2>&1; then
+  echo "Syncing IABP buoy CSVs into website/data/iabp/ ..."
+  mkdir -p "${CSV_IABP_DST}"
+  cp "${CSV_IABP_SRC}"/*.csv "${CSV_IABP_DST}/"
+  # Copy the JSON index too
+  [ -f "${CSV_IABP_SRC}/_index.json" ] && cp "${CSV_IABP_SRC}/_index.json" "${CSV_IABP_DST}/"
+  echo "  $(ls "${CSV_IABP_DST}"/*.csv | wc -l) IABP CSV files ready."
+else
+  echo "  No IABP CSVs found, skipping."
+fi
+
 echo "Starting local server on http://localhost:${PORT}"
 echo "Press Ctrl-C to stop."
 cd "${WEBSITE_DIR}"

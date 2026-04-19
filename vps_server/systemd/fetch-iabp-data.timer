@@ -1,0 +1,11 @@
+[Unit]
+Description=Fetch IABP buoy data every 6 hours
+Requires=fetch-iabp-data.service
+
+[Timer]
+OnBootSec=14min
+OnUnitActiveSec=6h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

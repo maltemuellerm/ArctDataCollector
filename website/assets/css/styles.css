@@ -118,6 +118,7 @@ body {
 .thermistor-tag { background: #eaf6ee; color: #1a7a3a; }
 .arctsum-tag    { background: #f0ebfa; color: #6c3c9e; }
 .svalmiz-tag    { background: #fdf0ea; color: #9e4c1a; }
+.iabp-tag       { background: #e6f4ee; color: #155e35; }
 
 .ship-card .ship-name {
   font-weight: 600;

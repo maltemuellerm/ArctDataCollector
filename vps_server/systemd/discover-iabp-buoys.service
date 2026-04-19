@@ -1,0 +1,13 @@
+[Unit]
+Description=Discover new active IABP buoys and update registry
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/arct-collector
+ExecStart=/opt/arct-collector/.venv/bin/python3 /opt/arct-collector/scripts/discover_iabp_buoys.py
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1

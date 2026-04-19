@@ -55,6 +55,9 @@ function renderBuoyDetail(buoy) {
   // z[sensor_index][time_index] — shape: sensors × timestamps
   const z = dtcCols.map((col) => _num(rows, col));
 
+  // SIMBA sensor chain: 2 cm spacing, sensor 0 at the top of the chain.
+  const dtcDepthsCm = dtcCols.map((_, i) => i * 2);
+
   const DTC_COLORSCALE = [
     [0.0,  "#053061"], [0.25, "#2166ac"], [0.45, "#92c5de"],
     [0.5,  "#f7f7f7"],
@@ -66,13 +69,13 @@ function renderBuoyDetail(buoy) {
     {
       type: "heatmap",
       x: dates,
-      y: dtcCols.map((_, i) => i),
+      y: dtcDepthsCm,
       z,
       colorscale: DTC_COLORSCALE,
-      zmin: -40, zmax: 0,
+      zmin: -40, zmax: 5,
       colorbar: { title: "\u00b0C", thickness: 14, len: 0.43, y: 0.78, yanchor: "bottom" },
       xaxis: "x", yaxis: "y",
-      hovertemplate: "%{x}<br>Sensor %{y}<br><b>%{z:.2f}\u00b0C</b><extra></extra>",
+      hovertemplate: "%{x}<br>Depth %{y} cm<br><b>%{z:.2f}\u00b0C</b><extra></extra>",
     },
     // Panel 2 — Air temp + water temp
     { x: dates, y: _num(rows, "air_temp"),   name: "Air Temp (\u00b0C)",   mode: "lines",
@@ -92,8 +95,8 @@ function renderBuoyDetail(buoy) {
   const layout = {
     // Heatmap panel
     xaxis:  { matches: "x4", showticklabels: false, showgrid: false },
-    yaxis:  { title: "Sensor #", domain: [0.55, 1.00], showgrid: false,
-              autorange: "reversed" }, // sensor 0 at top (surface)
+    yaxis:  { title: "Depth (cm)", domain: [0.55, 1.00], showgrid: false,
+              autorange: "reversed" }, // depth 0 at top of chain
     // Time series panels
     xaxis2: { matches: "x4", showticklabels: false, showgrid: true, gridcolor: "#eee" },
     xaxis3: { matches: "x4", showticklabels: false, showgrid: true, gridcolor: "#eee" },
@@ -279,6 +282,51 @@ async function renderArctsumDetail(buoy) {
     hovermode: "x unified",
     plot_bgcolor: "#f8fbfc", paper_bgcolor: "#ffffff",
     height: 680,
+  };
+
+  Plotly.newPlot("plot-container", traces, layout, { responsive: true, displaylogo: false });
+}
+
+function renderIabpDetail(buoy) {
+  const rows  = buoy.rows;
+  const dates = rows.map((r) => r.time).filter(Boolean);
+
+  const tempTraces = [];
+  const bpTraces   = [];
+
+  if (rows.some((r) => r.air_temp !== "")) {
+    tempTraces.push({ x: dates, y: _num(rows, "air_temp"),
+      name: "Air Temp (\u00b0C)", mode: "lines",
+      line: { color: "#e05c2e", width: 1.8 }, xaxis: "x2", yaxis: "y2" });
+  }
+  if (rows.some((r) => r.surface_temp !== "")) {
+    tempTraces.push({ x: dates, y: _num(rows, "surface_temp"),
+      name: "Surface Temp (\u00b0C)", mode: "lines",
+      line: { color: "#2e8bc0", width: 1.8, dash: "dot" }, xaxis: "x2", yaxis: "y2" });
+  }
+  if (rows.some((r) => r.bp !== "")) {
+    bpTraces.push({ x: dates, y: _num(rows, "bp"),
+      name: "Pressure (hPa)", mode: "lines",
+      line: { color: "#6a5acd", width: 1.8 }, xaxis: "x", yaxis: "y" });
+  }
+
+  const traces = [...bpTraces, ...tempTraces];
+  const hasBp   = bpTraces.length > 0;
+  const hasTemp = tempTraces.length > 0;
+
+  const layout = {
+    xaxis:  { matches: "x2", showticklabels: !hasTemp, showgrid: true, gridcolor: "#eee",
+              title: hasTemp ? "" : "Date (UTC)" },
+    xaxis2: { title: "Date (UTC)", showgrid: true, gridcolor: "#eee" },
+    yaxis:  { title: "Pressure (hPa)", domain: hasBp && hasTemp ? [0.55, 1.00] : [0.0, 1.0],
+              showgrid: true, gridcolor: "#eee", zeroline: false },
+    yaxis2: { title: "Temp (\u00b0C)",  domain: hasBp && hasTemp ? [0.00, 0.42] : [0.0, 1.0],
+              showgrid: true, gridcolor: "#eee", zeroline: false },
+    margin: { t: 15, r: 30, b: 55, l: 75 },
+    legend: { orientation: "h", y: -0.22, font: { size: 12 } },
+    hovermode: "x unified",
+    plot_bgcolor: "#f8fbfc", paper_bgcolor: "#ffffff",
+    height: hasBp && hasTemp ? 420 : 300,
   };
 
   Plotly.newPlot("plot-container", traces, layout, { responsive: true, displaylogo: false });

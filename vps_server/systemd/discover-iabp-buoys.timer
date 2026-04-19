@@ -1,0 +1,10 @@
+[Unit]
+Description=Weekly discovery of new active IABP buoys
+Requires=discover-iabp-buoys.service
+
+[Timer]
+OnCalendar=Mon *-*-* 04:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

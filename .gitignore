@@ -8,6 +8,8 @@ website/data/ships/
 website/data/simba/
 website/data/thermistor/
 website/data/arctsum/
+website/data/svalmiz/
+website/data/iabp/
 
 # VPS collected data (generated; not tracked in git)
 vps_server/data/
