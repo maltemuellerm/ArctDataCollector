@@ -168,7 +168,6 @@ async function init() {
     statusEl.textContent = "Failed to load data: " + err.message;
     return;
   }
-
   const allItems = [...ships, ...buoys, ...thermistors, ...arctsum, ...svalmiz, ...iabp];
   if (!allItems.length) { statusEl.textContent = "No data available."; return; }
   statusEl.style.display = "none";
