@@ -1,0 +1,13 @@
+[Unit]
+Description=Compute AROME Arctic forecast verification statistics
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/arct-collector
+ExecStart=/opt/arct-collector/.venv/bin/python3 /opt/arct-collector/scripts/compute_arome_verification.py
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1

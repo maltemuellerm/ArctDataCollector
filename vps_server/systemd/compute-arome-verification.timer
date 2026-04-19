@@ -1,0 +1,11 @@
+[Unit]
+Description=Run AROME Arctic verification daily at 06:00 UTC
+Requires=compute-arome-verification.service
+
+[Timer]
+# Run daily at 06:00 UTC (after the 00Z AROME run is usually available)
+OnCalendar=*-*-* 06:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
