@@ -34,9 +34,9 @@ _KEEP_DAYS  = 30          # rolling window stored on disk
 # Physical plausibility ranges — values outside these are sensor errors.
 # Exact zero is always treated as bad data for sensors.
 _VALID_RANGE = {
-    "air_temp":     (-75.0,  50.0),
-    "surface_temp": ( -5.0,  35.0),
-    "bp":           (850.0, 1100.0),
+    "air_temp":      (-75.0,  50.0),
+    "surface_temp":  ( -5.0,  35.0),
+    "air_pressure":  (850.0, 1100.0),
 }
 
 
@@ -50,7 +50,7 @@ def _parse_dat(text: str, has_bp: bool, has_ts: bool, has_ta: bool) -> list[dict
     """Parse .dat file text into a list of row dicts."""
     sensor_names = []
     if has_bp:
-        sensor_names.append("bp")
+        sensor_names.append("air_pressure")
     if has_ts:
         sensor_names.append("surface_temp")
     if has_ta:
@@ -83,12 +83,12 @@ def _parse_dat(text: str, has_bp: bool, has_ts: bool, has_ta: bool) -> list[dict
             continue
 
         row: dict = {
-            "time":      dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "latitude":  round(lat, 5),
-            "longitude": round(lon, 5),
-            "bp":        "",
+            "time":         dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "latitude":     round(lat, 5),
+            "longitude":    round(lon, 5),
+            "air_pressure": "",
             "surface_temp": "",
-            "air_temp":  "",
+            "air_temp":     "",
         }
 
         # Map optional sensor columns

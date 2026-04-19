@@ -55,7 +55,10 @@ def _merge_rows(existing: list[dict], fresh: list[dict]) -> list[dict]:
     by_key: dict[tuple, dict] = {}
     for row in existing + fresh:
         by_key[_dedup_key(row)] = row  # fresh wins on collision
-    return sorted(by_key.values(), key=lambda r: _timestamp_value(r))
+    return sorted(
+        [_rename_time_stamp([r])[0] for r in by_key.values()],
+        key=_timestamp_value,
+    )
 
 
 def _existing_csv_rows(csv_path: Path) -> list[dict]:
@@ -63,6 +66,14 @@ def _existing_csv_rows(csv_path: Path) -> list[dict]:
         return []
     with csv_path.open(encoding="utf-8", newline="") as fh:
         return list(csv.DictReader(fh))
+
+
+def _rename_time_stamp(rows: list[dict]) -> list[dict]:
+    """Rename the upstream 'time_stamp' key to the standard 'time'."""
+    return [
+        {("time" if k == "time_stamp" else k): v for k, v in r.items()}
+        for r in rows
+    ]
 
 
 def _write_csv(csv_path: Path, rows: list[dict]) -> None:

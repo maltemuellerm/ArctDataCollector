@@ -61,9 +61,9 @@ function buildCard(item, tStart, tEnd) {
 
   let metrics = "";
   if (item.type === "ship") {
-    const temp = row["Air temperature (\u00b0C)"];
-    const wind = row["Wind speed (m/s)"];
-    const pres = row["Sea level Pressure (hPa)"];
+    const temp = row["air_temp"];
+    const wind = row["wind_speed"];
+    const pres = row["air_pressure"];
     if (temp) metrics += `<span>\uD83C\uDF21\uFE0F ${temp}\u00b0C</span>`;
     if (wind) metrics += `<span>\uD83D\uDCA8 ${wind} m/s</span>`;
     if (pres) metrics += `<span>&#8853; ${pres} hPa</span>`;
@@ -75,19 +75,19 @@ function buildCard(item, tStart, tEnd) {
     if (pres) metrics += `<span>&#8853; ${pres} hPa</span>`;
     if (surf) metrics += `<span>\u2744\uFE0F surf ${surf} m</span>`;
   } else if (item.type === "thermistor") {
-    const temp = row["air temperature (degC)"];
-    const pres = row["barometric pressure (hPa)"];
+    const temp = row["air_temp"];
+    const pres = row["air_pressure"];
     if (temp) metrics += `<span>\uD83C\uDF21\uFE0F ${parseFloat(temp).toFixed(2)}\u00b0C</span>`;
     if (pres) metrics += `<span>&#8853; ${parseFloat(pres).toFixed(1)} hPa</span>`;
   } else if (item.type === "arctsum" || item.type === "svalmiz") {
-    const temp = row["air_temp_C"];
-    const hs   = row["wave_height_m"];
+    const temp = row["air_temp"];
+    const hs   = row["wave_height"];
     if (temp) metrics += `<span>\uD83C\uDF21\uFE0F ${parseFloat(temp).toFixed(2)}\u00b0C</span>`;
     if (hs)   metrics += `<span>\uD83C\uDF0A Hs ${parseFloat(hs).toFixed(2)} m</span>`;
   } else if (item.type === "iabp") {
     const ta  = row["air_temp"];
     const ts  = row["surface_temp"];
-    const bp  = row["bp"];
+    const bp  = row["air_pressure"];
     if (ta)  metrics += `<span>\uD83C\uDF21\uFE0F ${parseFloat(ta).toFixed(1)}\u00b0C</span>`;
     if (ts)  metrics += `<span>\u2744\uFE0F Ts ${parseFloat(ts).toFixed(1)}\u00b0C</span>`;
     if (bp)  metrics += `<span>&#8853; ${parseFloat(bp).toFixed(1)} hPa</span>`;

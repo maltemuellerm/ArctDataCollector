@@ -34,24 +34,24 @@ function itemColor(item) {
 
 const SHIPS = [
   { type: "ship", name: "Le Commandant Charcot", id: "MBBJ7YM",
-    latField: "Latitude (deg)", lonField: "Longitude (deg)", tsField: "date" },
+    latField: "latitude", lonField: "longitude", tsField: "time" },
   { type: "ship", name: "Tara Polar Station",    id: "SXZPW9C",
-    latField: "Latitude (deg)", lonField: "Longitude (deg)", tsField: "date" },
+    latField: "latitude", lonField: "longitude", tsField: "time" },
   { type: "ship", name: "Polarstern",            id: "JKFA7QZ",
-    latField: "Latitude (deg)", lonField: "Longitude (deg)", tsField: "date" },
+    latField: "latitude", lonField: "longitude", tsField: "time" },
   { type: "ship", name: "Oden",                  id: "SMLQ",
-    latField: "Latitude (deg)", lonField: "Longitude (deg)", tsField: "date" },
+    latField: "latitude", lonField: "longitude", tsField: "time" },
   { type: "ship", name: "RV Kronprins Haakon",   id: "3YYQ",
-    latField: "Latitude (deg)", lonField: "Longitude (deg)", tsField: "date" },
+    latField: "latitude", lonField: "longitude", tsField: "time" },
 ];
 
 const BUOYS = [
   { type: "simba", name: "SIMBA buoy 2", id: "fb39a488",
     deploymentId: "fb39a488-4209-4fa1-8220-76a384960de5",
-    latField: "latitude", lonField: "longitude", tsField: "time_stamp" },
+    latField: "latitude", lonField: "longitude", tsField: "time" },
   { type: "simba", name: "SIMBA buoy 3", id: "759dbda3",
     deploymentId: "759dbda3-f61f-4461-9cdd-cb717a49b45a",
-    latField: "latitude", lonField: "longitude", tsField: "time_stamp" },
+    latField: "latitude", lonField: "longitude", tsField: "time" },
 ];
 
 function parseCSV(text) {
@@ -97,11 +97,11 @@ async function loadAllBuoys() {
 
 const THERMISTORS = [
   { type: "thermistor", name: "Thermistor 2024T117", id: "2024T117",
-    latField: "latitude (deg)", lonField: "longitude (deg)", tsField: "time" },
+    latField: "latitude", lonField: "longitude", tsField: "time" },
   { type: "thermistor", name: "Thermistor 2025T141", id: "2025T141",
-    latField: "latitude (deg)", lonField: "longitude (deg)", tsField: "time" },
+    latField: "latitude", lonField: "longitude", tsField: "time" },
   { type: "thermistor", name: "Thermistor 2025T142", id: "2025T142",
-    latField: "latitude (deg)", lonField: "longitude (deg)", tsField: "time" },
+    latField: "latitude", lonField: "longitude", tsField: "time" },
 ];
 
 async function loadAllThermistors() {

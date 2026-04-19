@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 _CONFIG_PATH = Path(__file__).resolve().parents[3] / "config" / "iabp_buoys.yaml"
 _CSV_DIR     = Path(__file__).resolve().parents[3] / "data" / "processed" / "csv" / "iabp"
 
-_CSV_FIELDS  = ["time", "latitude", "longitude", "bp", "surface_temp", "air_temp"]
+_CSV_FIELDS  = ["time", "latitude", "longitude", "air_pressure", "surface_temp", "air_temp"]
 
 
 def _load_yaml(path: Path) -> list[dict]:

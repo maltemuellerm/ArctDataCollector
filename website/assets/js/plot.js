@@ -6,25 +6,25 @@ function renderShipDetail(ship) {
   const rows  = ship.rows; // chronological
   const dates = rows.map((r) => r[ship.tsField]).filter(Boolean);
 
-  const hasSolar = rows.some((r) => (r["Solar irradiance (W/m\u00b2)"] || "") !== "");
+  const hasSolar = rows.some((r) => (r["solar_irradiance"] || "") !== "");
 
   const traces = [
-    { x: dates, y: _num(rows, "Air temperature (\u00b0C)"),
+    { x: dates, y: _num(rows, "air_temp"),
       name: "Air Temp (\u00b0C)", mode: "lines",
       line: { color: "#e05c2e", width: 1.8 }, xaxis: "x", yaxis: "y" },
-    { x: dates, y: _num(rows, "SST (\u00b0C)"),
+    { x: dates, y: _num(rows, "sea_surface_temp"),
       name: "SST (\u00b0C)", mode: "lines",
       line: { color: "#2e8bc0", width: 1.8, dash: "dot" }, xaxis: "x", yaxis: "y" },
-    { x: dates, y: _num(rows, "Dew point temperature (\u00b0C)"),
+    { x: dates, y: _num(rows, "dew_point_temp"),
       name: "Dew point (\u00b0C)", mode: "lines",
       line: { color: "#8e6dbf", width: 1.4, dash: "dash" }, xaxis: "x", yaxis: "y" },
-    { x: dates, y: _num(rows, "Sea level Pressure (hPa)"),
+    { x: dates, y: _num(rows, "air_pressure"),
       name: "Pressure (hPa)", mode: "lines",
       line: { color: "#6a5acd", width: 1.8 }, xaxis: "x2", yaxis: "y2" },
-    { x: dates, y: _num(rows, "Wind speed (m/s)"),
+    { x: dates, y: _num(rows, "wind_speed"),
       name: "Wind (m/s)", mode: "lines",
       line: { color: "#2dab6f", width: 1.8 }, xaxis: "x3", yaxis: "y3" },
-    { x: dates, y: _num(rows, "Humidity (%)"),
+    { x: dates, y: _num(rows, "humidity"),
       name: "Humidity (%)", mode: "lines",
       line: { color: "#e0a020", width: 1.8 }, xaxis: "x4", yaxis: "y4" },
   ];
@@ -32,7 +32,7 @@ function renderShipDetail(ship) {
   let layout;
   if (hasSolar) {
     traces.push({
-      x: dates, y: _num(rows, "Solar irradiance (W/m\u00b2)"),
+      x: dates, y: _num(rows, "solar_irradiance"),
       name: "Solar irradiance (W/m\u00b2)", mode: "lines",
       line: { color: "#d4a017", width: 1.8 }, xaxis: "x5", yaxis: "y5",
     });
@@ -196,15 +196,15 @@ async function renderThermistorDetail(buoy) {
       hovertemplate: "%{x}<br>Sensor %{y}<br><b>%{z:.2f}\u00b0C</b><extra></extra>",
     },
     // Panel 2 — Air temperature
-    { x: tsDates, y: _num(tsRows, "air temperature (degC)"),
+    { x: tsDates, y: _num(tsRows, "air_temp"),
       name: "Air Temp (\u00b0C)", mode: "lines",
       line: { color: "#e05c2e", width: 1.8 }, xaxis: "x2", yaxis: "y2" },
     // Panel 3 — Barometric pressure
-    { x: tsDates, y: _num(tsRows, "barometric pressure (hPa)"),
+    { x: tsDates, y: _num(tsRows, "air_pressure"),
       name: "Pressure (hPa)", mode: "lines",
       line: { color: "#6a5acd", width: 1.8 }, xaxis: "x3", yaxis: "y3" },
     // Panel 4 — Tilt
-    { x: tsDates, y: _num(tsRows, "tilt (deg)"),
+    { x: tsDates, y: _num(tsRows, "tilt"),
       name: "Tilt (\u00b0)", mode: "lines",
       line: { color: "#2dab6f", width: 1.8 }, xaxis: "x4", yaxis: "y4" },
   ];
@@ -281,18 +281,18 @@ async function renderArctsumDetail(buoy) {
       hovertemplate: "%{x}<br>Depth %{y:.2f} m<br><b>%{z:.2f}\u00b0C</b><extra></extra>",
     },
     // Panel 2 — Air temperature + skin temperature
-    { x: tsDates, y: _num(tsRows, "air_temp_C"),
+    { x: tsDates, y: _num(tsRows, "air_temp"),
       name: "Air Temp (\u00b0C)", mode: "lines",
       line: { color: "#e05c2e", width: 1.8 }, xaxis: "x2", yaxis: "y2" },
-    { x: tsDates, y: _num(tsRows, "skin_temp_C"),
+    { x: tsDates, y: _num(tsRows, "skin_temp"),
       name: "Skin Temp (\u00b0C)", mode: "lines",
       line: { color: "#c0392b", width: 1.4, dash: "dot" }, xaxis: "x2", yaxis: "y2" },
     // Panel 3 — Significant wave height
-    { x: tsDates, y: _num(tsRows, "wave_height_m"),
+    { x: tsDates, y: _num(tsRows, "wave_height"),
       name: "Wave Hs (m)", mode: "lines",
       line: { color: "#2e8bc0", width: 1.8 }, xaxis: "x3", yaxis: "y3" },
     // Panel 4 — Wave period
-    { x: tsDates, y: _num(tsRows, "wave_period_t02_s"),
+    { x: tsDates, y: _num(tsRows, "wave_period"),
       name: "T\u2080\u2082 (s)", mode: "lines",
       line: { color: "#6a5acd", width: 1.8 }, xaxis: "x4", yaxis: "y4" },
   ];
@@ -335,8 +335,8 @@ function renderIabpDetail(buoy) {
       name: "Surface Temp (\u00b0C)", mode: "lines",
       line: { color: "#2e8bc0", width: 1.8, dash: "dot" }, xaxis: "x2", yaxis: "y2" });
   }
-  if (rows.some((r) => r.bp !== "")) {
-    bpTraces.push({ x: dates, y: _num(rows, "bp"),
+  if (rows.some((r) => r.air_pressure !== "")) {
+    bpTraces.push({ x: dates, y: _num(rows, "air_pressure"),
       name: "Pressure (hPa)", mode: "lines",
       line: { color: "#6a5acd", width: 1.8 }, xaxis: "x", yaxis: "y" });
   }

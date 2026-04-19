@@ -30,6 +30,20 @@ _CSV_DIR     = Path(__file__).resolve().parents[3] / "data" / "processed" / "csv
 # Keep only time + T-sensor columns in the TEMP file to reduce file size.
 _TEMP_COL_RE = re.compile(r"^(time|T\d+ \(degC\))$")
 
+# Upstream Sea Ice Portal column names → standard names.
+_RENAME_COLS = {
+    "latitude (deg)":            "latitude",
+    "longitude (deg)":           "longitude",
+    "air temperature (degC)":    "air_temp",
+    "barometric pressure (hPa)": "air_pressure",
+    "tilt (deg)":                "tilt",
+    "compass bearing (deg)":     "compass_bearing",
+}
+
+
+def _normalize(rows: list[dict]) -> list[dict]:
+    return [{_RENAME_COLS.get(k, k): v for k, v in r.items()} for r in rows]
+
 
 def _load_yaml(path: Path) -> dict:
     with path.open(encoding="utf-8") as fh:
@@ -63,8 +77,8 @@ def run(config_path: Path = _CONFIG_PATH, csv_dir: Path = _CSV_DIR) -> None:
             logger.error("Failed to fetch buoy %s: %s", buoy_id, exc)
             continue
 
-        # TS file: all columns as-is (lat, lon, pressure, air temp, tilt, compass)
-        _write_csv(csv_dir / f"{buoy_id}_ts.csv", ts_rows)
+        # TS file: normalize column names before writing.
+        _write_csv(csv_dir / f"{buoy_id}_ts.csv", _normalize(ts_rows))
 
         # TEMP file: time + T-sensor columns only (drops lat/lon/filter_flag)
         if temp_rows:

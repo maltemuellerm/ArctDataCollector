@@ -25,6 +25,25 @@ from ingestion.sources.frost_ship import fetch_frost_ship
 
 logger = logging.getLogger(__name__)
 
+# EUMETNET / upstream column names → standard names.
+_SHIP_RENAME = {
+    "date":                       "time",
+    "Latitude (deg)":             "latitude",
+    "Longitude (deg)":            "longitude",
+    "Sea level Pressure (hPa)":   "air_pressure",
+    "Air temperature (\u00b0C)": "air_temp",
+    "Humidity (%)": "humidity",
+    "Wind direction (deg)":       "wind_direction",
+    "Wind speed (m/s)":           "wind_speed",
+    "SST (\u00b0C)":              "sea_surface_temp",
+    "Dew point temperature (\u00b0C)": "dew_point_temp",
+}
+
+
+def _normalize_ship_rows(rows: list[dict]) -> list[dict]:
+    """Rename EUMETNET column headers to standard names (idempotent)."""
+    return [{_SHIP_RENAME.get(k, k): v for k, v in r.items()} for r in rows]
+
 _CONFIG_PATH  = Path(__file__).resolve().parents[3] / "config" / "ships.yaml"
 _SECRETS_PATH = Path(__file__).resolve().parents[3] / "config" / "secrets.yaml"
 _OUTPUT_DIR   = Path(__file__).resolve().parents[3] / "data" / "processed" / "csv" / "ships"
@@ -49,19 +68,26 @@ def _merge_rows(existing: list[dict], fresh: list[dict]) -> list[dict]:
 
     by_key: dict[str, dict] = {}
     for row in existing + fresh:
-        key = (row.get("date", "").strip(), row.get("WMO id", "").strip())
+        # Support both old 'date' key (pre-normalisation) and new 'time' key.
+        ts_val = row.get("time", row.get("date", "")).strip()
+        key = (ts_val, row.get("WMO id", "").strip())
         by_key[key] = row  # fresh wins on duplicate key
 
-    merged = sorted(by_key.values(), key=lambda r: r.get("date", ""), reverse=True)
+    merged = sorted(
+        by_key.values(),
+        key=lambda r: r.get("time", r.get("date", "")),
+        reverse=True,
+    )
 
     filtered = []
     for row in merged:
         try:
-            ts = datetime.fromisoformat(row["date"]).replace(tzinfo=timezone.utc)
+            ts_str = row.get("time", row.get("date", ""))
+            ts = datetime.fromisoformat(ts_str).replace(tzinfo=timezone.utc)
             if ts >= cutoff:
                 filtered.append(row)
         except (KeyError, ValueError):
-            filtered.append(row)  # keep rows we cannot parse rather than drop them
+            filtered.append(row)
 
     return filtered
 
@@ -108,6 +134,7 @@ def run(config_path: Path = _CONFIG_PATH, output_dir: Path = _OUTPUT_DIR) -> Non
         source = ship.get("source", "eumetnet")
         csv_path = output_dir / f"{wmo_id}.csv"
 
+        existing = _normalize_ship_rows(_existing_rows(csv_path))
         try:
             if source == "frost":
                 frost_cfg = secrets.get("frost", {})
@@ -130,7 +157,7 @@ def run(config_path: Path = _CONFIG_PATH, output_dir: Path = _OUTPUT_DIR) -> Non
             logger.error("Failed to fetch data for %s (%s): %s", name, wmo_id, exc)
             continue
 
-        existing = _existing_rows(csv_path)
+        fresh = _normalize_ship_rows(fresh)
         merged = _merge_rows(existing, fresh)
         _write_csv(csv_path, merged)
         logger.info(

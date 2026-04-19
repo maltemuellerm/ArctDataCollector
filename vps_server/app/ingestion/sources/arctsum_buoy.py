@@ -156,10 +156,10 @@ def _extract_buoy(ds, tr_idx, buoy_id, sensor_ice2,
             "time":               ts,
             "latitude":           _fmt(lat[i]),
             "longitude":          _fmt(lon[i]),
-            "air_temp_C":         _fmt(Tair_on_gps[i]),
-            "skin_temp_C":        _fmt(Tskin_on_gps[i]),
-            "wave_height_m":      _fmt(Hs0_on_gps[i]),
-            "wave_period_t02_s":  _fmt(T02_on_gps[i]),
+            "air_temp":    _fmt(Tair_on_gps[i]),
+            "skin_temp":   _fmt(Tskin_on_gps[i]),
+            "wave_height": _fmt(Hs0_on_gps[i]),
+            "wave_period": _fmt(T02_on_gps[i]),
         }
         ts_rows.append(row)
 

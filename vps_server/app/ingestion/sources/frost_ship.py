@@ -166,18 +166,18 @@ def fetch_frost_ship(
         solar_val = solar.get(key) if key else None
 
         rows.append({
-            "date":                            ts,
-            "WMO id":                          wmo_id,
-            "Latitude (deg)":                  _fmt(lat),
-            "Longitude (deg)":                 _fmt(lon),
-            "Sea level Pressure (hPa)":        _fmt(obs.get("air_pressure_at_sea_level")),
-            "Air temperature (°C)":            _fmt(obs.get("air_temperature")),
-            "Dew point temperature (°C)":      _fmt(obs.get("dew_point_temperature")),
-            "Humidity (%)":                    _fmt(obs.get("relative_humidity")),
-            "Wind direction (deg)":            _fmt(obs.get("wind_from_direction")),
-            "Wind speed (m/s)":                _fmt(obs.get("wind_speed")),
-            "SST (°C)":                        _fmt(obs.get("sea_surface_temperature")),
-            "Solar irradiance (W/m²)":         _fmt(solar_val),
+            "time":             ts,
+            "WMO id":           wmo_id,
+            "latitude":         _fmt(lat),
+            "longitude":        _fmt(lon),
+            "air_pressure":     _fmt(obs.get("air_pressure_at_sea_level")),
+            "air_temp":         _fmt(obs.get("air_temperature")),
+            "dew_point_temp":   _fmt(obs.get("dew_point_temperature")),
+            "humidity":         _fmt(obs.get("relative_humidity")),
+            "wind_direction":   _fmt(obs.get("wind_from_direction")),
+            "wind_speed":       _fmt(obs.get("wind_speed")),
+            "sea_surface_temp": _fmt(obs.get("sea_surface_temperature")),
+            "solar_irradiance": _fmt(solar_val),
         })
 
     logger.info("Fetched %d rows for %s", len(rows), station_id)
