@@ -6,6 +6,8 @@ function renderShipDetail(ship) {
   const rows  = ship.rows; // chronological
   const dates = rows.map((r) => r[ship.tsField]).filter(Boolean);
 
+  const hasSolar = rows.some((r) => (r["Solar irradiance (W/m\u00b2)"] || "") !== "");
+
   const traces = [
     { x: dates, y: _num(rows, "Air temperature (\u00b0C)"),
       name: "Air Temp (\u00b0C)", mode: "lines",
@@ -13,6 +15,9 @@ function renderShipDetail(ship) {
     { x: dates, y: _num(rows, "SST (\u00b0C)"),
       name: "SST (\u00b0C)", mode: "lines",
       line: { color: "#2e8bc0", width: 1.8, dash: "dot" }, xaxis: "x", yaxis: "y" },
+    { x: dates, y: _num(rows, "Dew point temperature (\u00b0C)"),
+      name: "Dew point (\u00b0C)", mode: "lines",
+      line: { color: "#8e6dbf", width: 1.4, dash: "dash" }, xaxis: "x", yaxis: "y" },
     { x: dates, y: _num(rows, "Sea level Pressure (hPa)"),
       name: "Pressure (hPa)", mode: "lines",
       line: { color: "#6a5acd", width: 1.8 }, xaxis: "x2", yaxis: "y2" },
@@ -24,21 +29,47 @@ function renderShipDetail(ship) {
       line: { color: "#e0a020", width: 1.8 }, xaxis: "x4", yaxis: "y4" },
   ];
 
-  const layout = {
-    xaxis:  { matches: "x4", showticklabels: false, showgrid: true, gridcolor: "#eee" },
-    xaxis2: { matches: "x4", showticklabels: false, showgrid: true, gridcolor: "#eee" },
-    xaxis3: { matches: "x4", showticklabels: false, showgrid: true, gridcolor: "#eee" },
-    xaxis4: { title: "Date (UTC)", showgrid: true, gridcolor: "#eee" },
-    yaxis:  { title: "Temp (\u00b0C)",    domain: [0.77, 1.00], showgrid: true, gridcolor: "#eee", zeroline: false },
-    yaxis2: { title: "Pressure (hPa)", domain: [0.52, 0.73], showgrid: true, gridcolor: "#eee", zeroline: false },
-    yaxis3: { title: "Wind (m/s)",     domain: [0.27, 0.48], showgrid: true, gridcolor: "#eee", zeroline: false },
-    yaxis4: { title: "Humidity (%)",   domain: [0.00, 0.21], showgrid: true, gridcolor: "#eee", zeroline: false },
-    margin: { t: 15, r: 25, b: 55, l: 75 },
-    legend: { orientation: "h", y: -0.18, font: { size: 12 } },
-    hovermode: "x unified",
-    plot_bgcolor: "#f8fbfc", paper_bgcolor: "#ffffff",
-    height: 520,
-  };
+  let layout;
+  if (hasSolar) {
+    traces.push({
+      x: dates, y: _num(rows, "Solar irradiance (W/m\u00b2)"),
+      name: "Solar irradiance (W/m\u00b2)", mode: "lines",
+      line: { color: "#d4a017", width: 1.8 }, xaxis: "x5", yaxis: "y5",
+    });
+    layout = {
+      xaxis:  { matches: "x5", showticklabels: false, showgrid: true, gridcolor: "#eee" },
+      xaxis2: { matches: "x5", showticklabels: false, showgrid: true, gridcolor: "#eee" },
+      xaxis3: { matches: "x5", showticklabels: false, showgrid: true, gridcolor: "#eee" },
+      xaxis4: { matches: "x5", showticklabels: false, showgrid: true, gridcolor: "#eee" },
+      xaxis5: { title: "Date (UTC)", showgrid: true, gridcolor: "#eee" },
+      yaxis:  { title: "Temp (\u00b0C)",       domain: [0.84, 1.00], showgrid: true, gridcolor: "#eee", zeroline: false },
+      yaxis2: { title: "Pressure (hPa)",        domain: [0.63, 0.79], showgrid: true, gridcolor: "#eee", zeroline: false },
+      yaxis3: { title: "Wind (m/s)",             domain: [0.42, 0.58], showgrid: true, gridcolor: "#eee", zeroline: false },
+      yaxis4: { title: "Humidity (%)",           domain: [0.21, 0.37], showgrid: true, gridcolor: "#eee", zeroline: false },
+      yaxis5: { title: "Solar (W/m\u00b2)",      domain: [0.00, 0.16], showgrid: true, gridcolor: "#eee", zeroline: false },
+      margin: { t: 15, r: 25, b: 55, l: 75 },
+      legend: { orientation: "h", y: -0.14, font: { size: 12 } },
+      hovermode: "x unified",
+      plot_bgcolor: "#f8fbfc", paper_bgcolor: "#ffffff",
+      height: 620,
+    };
+  } else {
+    layout = {
+      xaxis:  { matches: "x4", showticklabels: false, showgrid: true, gridcolor: "#eee" },
+      xaxis2: { matches: "x4", showticklabels: false, showgrid: true, gridcolor: "#eee" },
+      xaxis3: { matches: "x4", showticklabels: false, showgrid: true, gridcolor: "#eee" },
+      xaxis4: { title: "Date (UTC)", showgrid: true, gridcolor: "#eee" },
+      yaxis:  { title: "Temp (\u00b0C)",    domain: [0.77, 1.00], showgrid: true, gridcolor: "#eee", zeroline: false },
+      yaxis2: { title: "Pressure (hPa)", domain: [0.52, 0.73], showgrid: true, gridcolor: "#eee", zeroline: false },
+      yaxis3: { title: "Wind (m/s)",     domain: [0.27, 0.48], showgrid: true, gridcolor: "#eee", zeroline: false },
+      yaxis4: { title: "Humidity (%)",   domain: [0.00, 0.21], showgrid: true, gridcolor: "#eee", zeroline: false },
+      margin: { t: 15, r: 25, b: 55, l: 75 },
+      legend: { orientation: "h", y: -0.18, font: { size: 12 } },
+      hovermode: "x unified",
+      plot_bgcolor: "#f8fbfc", paper_bgcolor: "#ffffff",
+      height: 520,
+    };
+  }
 
   Plotly.newPlot("plot-container", traces, layout, { responsive: true, displaylogo: false });
 }
