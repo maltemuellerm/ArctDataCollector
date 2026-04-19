@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Download Data — Arctic Observations</title>
+    <link rel="stylesheet" href="assets/css/styles.css" />
+    <link rel="stylesheet" href="assets/css/download.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-inner">
+        <h1>Arctic Observations</h1>
+        <p>Download observation data as CSV</p>
+        <nav class="site-nav">
+          <a href="index.html">Map &amp; Explorer</a>
+          <a href="download.html" class="active">Download</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="layout">
+
+      <section class="card dl-card">
+        <h2 class="dl-section-title">1 &mdash; Select time period</h2>
+        <div class="dl-date-row">
+          <label>
+            From
+            <input type="date" id="date-from" />
+          </label>
+          <label>
+            To
+            <input type="date" id="date-to" />
+          </label>
+          <div class="dl-date-presets">
+            <button class="preset-btn" data-days="7">Last 7 d</button>
+            <button class="preset-btn" data-days="14">Last 14 d</button>
+            <button class="preset-btn" data-days="30">Last 30 d</button>
+            <button class="preset-btn" data-days="0">All</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card dl-card">
+        <h2 class="dl-section-title">2 &mdash; Select observations</h2>
+        <p class="dl-hint">Check groups to select all instruments in that group, or expand to pick individual ones.</p>
+
+        <div id="instrument-groups"></div>
+      </section>
+
+      <section class="card dl-card dl-actions">
+        <div class="dl-summary" id="dl-summary">No instruments selected.</div>
+        <button id="dl-btn" class="dl-btn" disabled>
+          <span id="dl-btn-label">Download CSV(s)</span>
+        </button>
+        <div id="dl-progress" class="dl-progress" style="display:none"></div>
+      </section>
+
+    </main>
+
+    <!-- JSZip for packaging multiple CSVs into a single ZIP download -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="assets/js/csv-loader.js"></script>
+    <script src="assets/js/download.js"></script>
+  </body>
+</html>

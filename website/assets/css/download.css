@@ -1,0 +1,209 @@
+/* ── Download page ────────────────────────────────────── */
+
+/* Navigation in header */
+.site-nav {
+  display: flex;
+  gap: 1rem;
+  margin-top: .6rem;
+}
+.site-nav a {
+  color: rgba(255,255,255,.75);
+  text-decoration: none;
+  font-size: .85rem;
+  font-weight: 600;
+  padding: .2rem .5rem;
+  border-radius: 4px;
+  transition: background .15s, color .15s;
+}
+.site-nav a:hover,
+.site-nav a.active {
+  color: #fff;
+  background: rgba(255,255,255,.18);
+}
+
+/* Section card */
+.dl-card {
+  padding: 1.2rem 1.4rem;
+}
+.dl-section-title {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: .85rem;
+  padding-bottom: .4rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Date row */
+.dl-date-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1.2rem;
+}
+.dl-date-row label {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.dl-date-row input[type="date"] {
+  padding: .4rem .6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: .88rem;
+  color: var(--text);
+  background: #fff;
+  outline: none;
+  transition: border-color .15s;
+}
+.dl-date-row input[type="date"]:focus {
+  border-color: var(--accent2);
+}
+.dl-date-presets {
+  display: flex;
+  gap: .4rem;
+  flex-wrap: wrap;
+}
+.preset-btn {
+  padding: .35rem .7rem;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: #fff;
+  font-size: .8rem;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background .12s, border-color .12s;
+}
+.preset-btn:hover,
+.preset-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* Instrument groups */
+.dl-hint {
+  font-size: .82rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+.dl-group {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: .65rem;
+  overflow: hidden;
+}
+.dl-group-header {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .65rem .9rem;
+  background: #f5f8fa;
+  cursor: pointer;
+  user-select: none;
+}
+.dl-group-header:hover { background: #ecf2f7; }
+.dl-group-header input[type="checkbox"] {
+  width: 15px; height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.dl-group-label {
+  font-weight: 700;
+  font-size: .88rem;
+  flex: 1;
+}
+.dl-group-count {
+  font-size: .78rem;
+  color: var(--muted);
+}
+.dl-expand-btn {
+  font-size: .75rem;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 .2rem;
+  transition: transform .2s;
+}
+.dl-expand-btn.open { transform: rotate(180deg); }
+
+.dl-instruments {
+  display: none;
+  padding: .6rem .9rem .75rem 2.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: .35rem .8rem;
+}
+.dl-instruments.collapsed { display: none; }
+
+.dl-instr-item {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  font-size: .82rem;
+  color: var(--text);
+}
+.dl-instr-item input[type="checkbox"] {
+  width: 13px; height: 13px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.dl-instr-tag {
+  font-size: .62rem;
+  font-weight: 700;
+  padding: .08rem .3rem;
+  border-radius: 3px;
+}
+
+/* Actions section */
+.dl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+.dl-summary {
+  flex: 1;
+  font-size: .85rem;
+  color: var(--muted);
+  min-width: 200px;
+}
+.dl-btn {
+  padding: .65rem 1.8rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, opacity .15s;
+}
+.dl-btn:hover:not(:disabled) { background: var(--accent2); }
+.dl-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.dl-progress {
+  width: 100%;
+  font-size: .82rem;
+  color: var(--muted);
+}
+.dl-progress-bar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin-top: .4rem;
+  overflow: hidden;
+}
+.dl-progress-bar-fill {
+  height: 100%;
+  background: var(--accent2);
+  border-radius: 2px;
+  transition: width .2s;
+}
