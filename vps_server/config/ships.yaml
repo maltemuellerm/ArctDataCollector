@@ -21,3 +21,10 @@ ships:
   - name: "Oden"
     wmo_id: "SMLQ"
     active: true
+
+  # MET Norway Frost API ships
+  - name: "RV Kronprins Haakon"
+    wmo_id: "3YYQ"
+    station_id: "SN77035"
+    source: frost
+    active: true

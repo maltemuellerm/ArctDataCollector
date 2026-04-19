@@ -15,6 +15,7 @@ const ITEM_COLORS = {
   SMLQ:         "#9b59b6",
   "fb39a488":   "#f39c12",
   "759dbda3":   "#c0392b",
+  "3YYQ":       "#1a6e3c",
   "2024T117":   "#27ae60",
   "2025T141":   "#16a085",
   "2025T142":   "#8e44ad",
@@ -39,6 +40,8 @@ const SHIPS = [
   { type: "ship", name: "Polarstern",            id: "JKFA7QZ",
     latField: "Latitude (deg)", lonField: "Longitude (deg)", tsField: "date" },
   { type: "ship", name: "Oden",                  id: "SMLQ",
+    latField: "Latitude (deg)", lonField: "Longitude (deg)", tsField: "date" },
+  { type: "ship", name: "RV Kronprins Haakon",   id: "3YYQ",
     latField: "Latitude (deg)", lonField: "Longitude (deg)", tsField: "date" },
 ];
 

@@ -21,12 +21,14 @@ if str(_APP_ROOT) not in sys.path:
     sys.path.insert(0, str(_APP_ROOT))
 
 from ingestion.sources.eumetnet_ship import fetch_ship_csv
+from ingestion.sources.frost_ship import fetch_frost_ship
 
 logger = logging.getLogger(__name__)
 
-_CONFIG_PATH = Path(__file__).resolve().parents[3] / "config" / "ships.yaml"
-_OUTPUT_DIR = Path(__file__).resolve().parents[3] / "data" / "processed" / "csv" / "ships"
-_WINDOW_DAYS = 30
+_CONFIG_PATH  = Path(__file__).resolve().parents[3] / "config" / "ships.yaml"
+_SECRETS_PATH = Path(__file__).resolve().parents[3] / "config" / "secrets.yaml"
+_OUTPUT_DIR   = Path(__file__).resolve().parents[3] / "data" / "processed" / "csv" / "ships"
+_WINDOW_DAYS  = 30
 
 
 def _load_config(config_path: Path = _CONFIG_PATH) -> dict:
@@ -80,6 +82,13 @@ def _write_csv(csv_path: Path, rows: list[dict]) -> None:
     logger.info("Wrote %d rows to %s", len(rows), csv_path)
 
 
+def _load_secrets(secrets_path: Path = _SECRETS_PATH) -> dict:
+    if not secrets_path.exists():
+        return {}
+    with secrets_path.open(encoding="utf-8") as fh:
+        return yaml.safe_load(fh) or {}
+
+
 def run(config_path: Path = _CONFIG_PATH, output_dir: Path = _OUTPUT_DIR) -> None:
     """Fetch and save data for all active ships."""
     config = _load_config(config_path)
@@ -90,13 +99,33 @@ def run(config_path: Path = _CONFIG_PATH, output_dir: Path = _OUTPUT_DIR) -> Non
         logger.warning("No active ships found in %s", config_path)
         return
 
+    # Load secrets once; only needed if any ship uses the Frost source.
+    secrets = _load_secrets() if any(s.get("source") == "frost" for s in ships) else {}
+
     for ship in ships:
         wmo_id = ship["wmo_id"]
         name = ship.get("name", wmo_id)
+        source = ship.get("source", "eumetnet")
         csv_path = output_dir / f"{wmo_id}.csv"
 
         try:
-            fresh = fetch_ship_csv(wmo_id=wmo_id, url_template=url_template)
+            if source == "frost":
+                frost_cfg = secrets.get("frost", {})
+                client_id = frost_cfg.get("client_id", "")
+                client_secret = frost_cfg.get("client_secret", "")
+                if not client_id or not client_secret:
+                    logger.error(
+                        "Frost credentials missing in secrets.yaml — skipping %s", name
+                    )
+                    continue
+                fresh = fetch_frost_ship(
+                    station_id=ship["station_id"],
+                    wmo_id=wmo_id,
+                    client_id=client_id,
+                    client_secret=client_secret,
+                )
+            else:
+                fresh = fetch_ship_csv(wmo_id=wmo_id, url_template=url_template)
         except RuntimeError as exc:
             logger.error("Failed to fetch data for %s (%s): %s", name, wmo_id, exc)
             continue
