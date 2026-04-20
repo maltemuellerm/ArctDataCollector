@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="assets/css/styles.css" />
     <link rel="stylesheet" href="assets/css/download.css" />
     <link rel="stylesheet" href="assets/css/verification.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   </head>
   <body>
@@ -52,6 +54,29 @@
         </div>
 
         <div class="vrf-meta" id="vrf-meta"></div>
+      </section>
+
+      <!-- Observation map ───────────────────────────────────────────────── -->
+      <section class="card" id="map-card" style="display:none">
+        <h2 class="vrf-card-title">Observation locations &amp; per-point scores</h2>
+        <div class="vrf-map-controls">
+          <label class="vrf-label">
+            Colour by
+            <select id="map-metric-sel" class="vrf-select">
+              <option value="bias">Bias (model &minus; obs)</option>
+              <option value="abserror">Absolute error</option>
+            </select>
+          </label>
+          <label class="vrf-label">
+            Lead-time filter
+            <select id="map-lead-sel" class="vrf-select">
+              <option value="all">All lead times</option>
+            </select>
+          </label>
+        </div>
+        <div id="obs-map" class="vrf-obs-map"></div>
+        <div id="map-legend" class="vrf-map-legend"></div>
+        <p class="vrf-map-hint" id="map-hint"></p>
       </section>
 
       <!-- Error metrics chart ───────────────────────────────────────────── -->

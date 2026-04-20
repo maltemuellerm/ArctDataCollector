@@ -135,3 +135,47 @@
   font-size: .92rem;
   text-align: center;
 }
+
+/* ── Observation map ──────────────────────────────────────────────────────── */
+.vrf-map-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: .7rem 1.2rem .6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.vrf-obs-map {
+  width: 100%;
+  height: 430px;
+}
+
+.vrf-map-legend {
+  padding: .6rem 1.2rem .2rem;
+}
+
+.vrf-legend-bar {
+  height: 14px;
+  width: 100%;
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+}
+.vrf-legend-bar span {
+  flex: 1;
+  display: block;
+}
+.vrf-legend-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: .78rem;
+  color: var(--muted);
+  margin-top: .25rem;
+}
+
+.vrf-map-hint {
+  font-size: .82rem;
+  color: var(--muted);
+  padding: .1rem 1.2rem .6rem;
+  min-height: 1.4em;
+}

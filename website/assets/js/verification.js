@@ -40,6 +40,13 @@ let _source = null;
 let _var    = null;
 let _grp    = "12h";
 
+// Map state
+let _map         = null;
+let _dotLayer    = null;
+let _domainLayer = null;
+let _mapMetric   = "bias";
+let _mapLead     = "all";
+
 // ── Init ───────────────────────────────────────────────────────────────────────
 async function init() {
   const statusEl = document.getElementById("vrf-status");
@@ -112,6 +119,18 @@ function _wireControls() {
     _grp = btn.dataset.grp;
     _render();
   });
+  document.getElementById("map-metric-sel").addEventListener("change", (e) => {
+    _mapMetric = e.target.value;
+    const scatter = (_data.scatter[_source] || {})[_var];
+    const varMeta = (_data.variables || {})[_var] || {};
+    _renderMap(scatter, varMeta);
+  });
+  document.getElementById("map-lead-sel").addEventListener("change", (e) => {
+    _mapLead = e.target.value;
+    const scatter = (_data.scatter[_source] || {})[_var];
+    const varMeta = (_data.variables || {})[_var] || {};
+    _renderMap(scatter, varMeta);
+  });
   _populateVarSel();
 }
 
@@ -133,12 +152,14 @@ function _render() {
     _showNoData("metrics-card");
     _showNoData("table-card");
     _showNoData("scatter-card");
-    return;
+  } else {
+    _renderMetricsChart(statsForVar, varMeta);
+    _renderTable(statsForVar, varMeta);
+    _renderScatter(scatterForVar, varMeta);
   }
 
-  _renderMetricsChart(statsForVar, varMeta);
-  _renderTable(statsForVar, varMeta);
-  _renderScatter(scatterForVar, varMeta);
+  _updateMapLeadSel();
+  _renderMap(scatterForVar, varMeta);
 }
 
 // ── Metrics bar + bias line chart ──────────────────────────────────────────────
@@ -344,6 +365,156 @@ function _showNoData(cardId) {
   const target = card.querySelector(".vrf-plot, .vrf-table-wrap");
   if (target) target.innerHTML =
     `<div class="vrf-nodata">No data available for this source / variable.</div>`;
+}
+
+// ── Map: colour scale helpers ──────────────────────────────────────────────────
+function _lerp(a, b, t) { return Math.round(a + (b - a) * t); }
+
+function _valToColor(val, vmin, vmax, isDivergent) {
+  if (val == null || !isFinite(val)) return "#aaa";
+  const t = Math.max(0, Math.min(1, (vmax === vmin) ? 0.5 : (val - vmin) / (vmax - vmin)));
+  if (isDivergent) {
+    // blue → white → red
+    if (t <= 0.5) {
+      const s = t * 2;
+      return `rgb(${_lerp(44,255,s)},${_lerp(123,255,s)},${_lerp(182,255,s)})`;
+    } else {
+      const s = (t - 0.5) * 2;
+      return `rgb(255,${_lerp(255,69,s)},${_lerp(255,0,s)})`;
+    }
+  } else {
+    // white → dark red
+    return `rgb(255,${_lerp(255,0,t)},${_lerp(250,0,t)})`;
+  }
+}
+
+function _renderLegend(vmin, vmax, isDivergent, units) {
+  const el = document.getElementById("map-legend");
+  const steps = 200;
+  let bars = "";
+  for (let i = 0; i < steps; i++) {
+    const v = vmin + (i / (steps - 1)) * (vmax - vmin);
+    const c = _valToColor(v, vmin, vmax, isDivergent);
+    bars += `<span style="background:${c}"></span>`;
+  }
+  const fmt = (v) => (v >= 0 ? "+" : "") + v.toFixed(2);
+  const mid  = isDivergent ? `<span>0 ${units}</span>` : "";
+  el.innerHTML =
+    `<div class="vrf-legend-bar">${bars}</div>
+     <div class="vrf-legend-labels">
+       <span>${fmt(vmin)} ${units}</span>${mid}<span>${fmt(vmax)} ${units}</span>
+     </div>`;
+}
+
+// ── Map: lead-time selector population ────────────────────────────────────────
+function _updateMapLeadSel() {
+  const sel = document.getElementById("map-lead-sel");
+  if (!_data || !sel) return;
+  const buckets = (_data.groupings || {})[_grp] || [];
+  const cur = sel.value;
+  sel.innerHTML = `<option value="all">All lead times</option>`;
+  buckets.forEach((b) => {
+    const opt = document.createElement("option");
+    opt.value = b.label;
+    opt.textContent = b.label;
+    sel.appendChild(opt);
+  });
+  // Restore previous selection if still valid
+  if ([...sel.options].some((o) => o.value === cur)) sel.value = cur;
+  _mapLead = sel.value;
+}
+
+// ── Map: init + render ─────────────────────────────────────────────────────────
+function _initMap() {
+  if (_map) return;
+  _map = L.map("obs-map", { center: [78, 15], zoom: 3 });
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "\u00a9 <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors",
+    maxZoom: 10,
+  }).addTo(_map);
+}
+
+function _renderMap(scatter, varMeta) {
+  const card = document.getElementById("map-card");
+  card.style.display = "";
+  _initMap();
+  // Force Leaflet to recalculate size after card becomes visible
+  setTimeout(() => _map.invalidateSize(), 50);
+
+  // Domain polygon (AROME Arctic boundary)
+  if (_domainLayer) { _map.removeLayer(_domainLayer); _domainLayer = null; }
+  const domain = _data.domain || [];
+  if (domain.length > 3) {
+    _domainLayer = L.polygon(domain, {
+      color: "#0b6b8a", weight: 2, fill: false,
+      dashArray: "8 5", opacity: 0.9,
+    }).addTo(_map);
+  }
+
+  // Clear previous dots
+  if (_dotLayer) { _map.removeLayer(_dotLayer); _dotLayer = null; }
+  document.getElementById("map-legend").innerHTML = "";
+  document.getElementById("map-hint").textContent = "";
+
+  const lats = (scatter || {}).lat || [];
+  if (!lats.length || lats.every((v) => v == null)) {
+    document.getElementById("map-hint").textContent =
+      "Location data not yet available \u2014 re-run compute_arome_verification.py to generate it.";
+    return;
+  }
+
+  const obs   = scatter.obs   || [];
+  const model = scatter.model || [];
+  const leads = scatter.lead  || [];
+  const lons  = scatter.lon   || [];
+  const isDivergent = _mapMetric === "bias";
+  const units = varMeta.units || "";
+
+  // Find active bucket
+  const buckets = (_data.groupings || {})[_grp] || [];
+  const activeBucket = _mapLead === "all"
+    ? null
+    : buckets.find((b) => b.label === _mapLead);
+
+  // Collect filtered points
+  const pts = [];
+  for (let k = 0; k < obs.length; k++) {
+    if (lats[k] == null || lons[k] == null) continue;
+    if (activeBucket && !(leads[k] >= activeBucket.lo && leads[k] < activeBucket.hi)) continue;
+    const err = model[k] - obs[k];
+    const v   = isDivergent ? err : Math.abs(err);
+    if (isFinite(v)) pts.push({ lat: lats[k], lon: lons[k], v, lead: leads[k] });
+  }
+
+  if (!pts.length) {
+    document.getElementById("map-hint").textContent = "No observations in selected lead-time window.";
+    return;
+  }
+
+  const vals = pts.map((p) => p.v);
+  let vmin, vmax;
+  if (isDivergent) {
+    const absmax = Math.max(...vals.map(Math.abs));
+    vmin = -absmax; vmax = absmax;
+  } else {
+    vmin = 0; vmax = Math.max(...vals);
+  }
+
+  const markers = pts.map(({ lat, lon, v, lead }) => {
+    const color = _valToColor(v, vmin, vmax, isDivergent);
+    const sign  = isDivergent && v >= 0 ? "+" : "";
+    return L.circleMarker([lat, lon], {
+      radius: 5,
+      color: "rgba(0,0,0,0.25)", weight: 0.5,
+      fillColor: color, fillOpacity: 0.85,
+    }).bindTooltip(
+      `${varMeta.label || _var}: ${sign}${v.toFixed(2)} ${units}<br>Lead: ${lead}\u202ah`
+    );
+  });
+  _dotLayer = L.layerGroup(markers).addTo(_map);
+  document.getElementById("map-hint").textContent =
+    `${pts.length} observation${pts.length !== 1 ? "s" : ""} shown`;
+  _renderLegend(vmin, vmax, isDivergent, units);
 }
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────────

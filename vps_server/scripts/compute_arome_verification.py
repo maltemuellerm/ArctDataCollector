@@ -128,6 +128,29 @@ def _nearest_grid(lat2d: np.ndarray, lon2d: np.ndarray,
     return j, i, math.sqrt(float(dist2.flat[flat]))
 
 
+def _domain_boundary(lat2d: np.ndarray, lon2d: np.ndarray,
+                     step: int = 15) -> list[list[float]]:
+    """Sample edge pixels to get an approximate domain boundary polygon.
+
+    Returns list of [lat, lon] pairs going clockwise around the grid edge.
+    """
+    rows, cols = lat2d.shape
+    pts: list[list[float]] = []
+    # bottom row, left → right
+    for i in range(0, cols, step):
+        pts.append([round(float(lat2d[-1, i]), 3), round(float(lon2d[-1, i]), 3)])
+    # right column, bottom → top
+    for j in range(rows - 1, -1, -step):
+        pts.append([round(float(lat2d[j, -1]), 3), round(float(lon2d[j, -1]), 3)])
+    # top row, right → left
+    for i in range(cols - 1, -1, -step):
+        pts.append([round(float(lat2d[0, i]), 3), round(float(lon2d[0, i]), 3)])
+    # left column, top → bottom
+    for j in range(0, rows, step):
+        pts.append([round(float(lat2d[j, 0]), 3), round(float(lon2d[j, 0]), 3)])
+    return pts
+
+
 # ── Time helpers ───────────────────────────────────────────────────────────────
 
 def _parse_iso(s: str) -> datetime | None:
@@ -320,6 +343,8 @@ def _process_run(run_time: datetime,
                     "obs":        obs["obs"],
                     "model":      model_val,
                     "lead_h":     round(lead_h, 2),
+                    "lat":        round(obs["lat"], 3),
+                    "lon":        round(obs["lon"], 3),
                 })
     finally:
         nc.close()
@@ -343,11 +368,11 @@ def _stats(obs_arr: np.ndarray, model_arr: np.ndarray) -> dict:
 def _compute_verification(all_pairs: list[dict]) -> dict:
     """Aggregate pairs into stats + scatter data per (source, variable)."""
 
-    # Group pairs: pairs_by[source][variable] = list of (obs, model, lead_h)
+    # Group pairs: pairs_by[source][variable] = list of (obs, model, lead_h, lat, lon)
     pairs_by: dict[str, dict[str, list[tuple]]] = defaultdict(lambda: defaultdict(list))
     for p in all_pairs:
         pairs_by[p["source"]][p["variable"]].append(
-            (p["obs"], p["model"], p["lead_h"]))
+            (p["obs"], p["model"], p["lead_h"], p.get("lat"), p.get("lon")))
 
     stats_out: dict[str, dict] = {}
     scatter_out: dict[str, dict] = {}
@@ -359,6 +384,7 @@ def _compute_verification(all_pairs: list[dict]) -> dict:
             obs_all   = np.array([t[0] for t in triplets])
             model_all = np.array([t[1] for t in triplets])
             leads_all = np.array([t[2] for t in triplets])
+            # t[3]=lat, t[4]=lon (may be None for legacy cached pairs)
 
             # Per-grouping statistics
             grp_stats: dict[str, list[dict]] = {}
@@ -388,6 +414,8 @@ def _compute_verification(all_pairs: list[dict]) -> dict:
                 "obs":   [round(t[0], 4) for t in samp],
                 "model": [round(t[1], 4) for t in samp],
                 "lead":  [round(t[2], 2) for t in samp],
+                "lat":   [t[3] for t in samp],
+                "lon":   [t[4] for t in samp],
             }
 
     return {"stats": stats_out, "scatter": scatter_out}
@@ -506,6 +534,7 @@ def main() -> None:
                             for lo, hi, lbl in buckets]
                        for k, buckets in _GROUPINGS.items()},
         "variables":  _VAR_META,
+        "domain":     _domain_boundary(lat2d, lon2d) if lat2d is not None else [],
         "stats":      result["stats"],
         "scatter":    result["scatter"],
     }
