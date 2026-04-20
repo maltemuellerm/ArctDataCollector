@@ -196,7 +196,7 @@ function _renderMetricsChart(buckets, varMeta) {
     yaxis: {
       title: `Error${unitLbl}`,
       side: "left",
-      rangemode: "tozero",
+      autorange: true,
       showgrid: true, gridcolor: "#eee",
     },
     yaxis2: {
