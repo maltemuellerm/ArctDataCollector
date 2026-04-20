@@ -157,21 +157,25 @@ function _renderMetricsChart(buckets, varMeta) {
 
   const traces = [
     {
-      type: "bar",
+      type: "scatter",
+      mode: "lines+markers",
       name: "RMSE",
       x: labels, y: rmse,
       customdata,
       hovertemplate: "RMSE: %{y:.3f}<br>N: %{customdata}<extra></extra>",
-      marker: { color: "#2e5fa3", opacity: 0.85 },
+      line: { color: "#2e5fa3", width: 2.5 },
+      marker: { size: 7, symbol: "circle" },
       yaxis: "y",
     },
     {
-      type: "bar",
+      type: "scatter",
+      mode: "lines+markers",
       name: "MAE",
       x: labels, y: mae,
       customdata,
       hovertemplate: "MAE: %{y:.3f}<br>N: %{customdata}<extra></extra>",
-      marker: { color: "#2dab6f", opacity: 0.85 },
+      line: { color: "#2dab6f", width: 2.5 },
+      marker: { size: 7, symbol: "circle" },
       yaxis: "y",
     },
     {
@@ -188,7 +192,6 @@ function _renderMetricsChart(buckets, varMeta) {
   ];
 
   const layout = {
-    barmode: "group",
     xaxis: { title: "Lead time", tickfont: { size: 12 } },
     yaxis: {
       title: `Error${unitLbl}`,
