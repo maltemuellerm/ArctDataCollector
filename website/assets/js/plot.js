@@ -245,7 +245,7 @@ async function renderArctsumDetail(buoy) {
   const tsRows   = buoy.rows;
   // Filter temp rows to the same time window as tsRows
   const tS = buoy._tStart || "", tE = buoy._tEnd || "9999";
-  const tempRows = buoy._allTempRows.filter((r) => {
+  const tempRows = (orig._allTempRows || []).filter((r) => {
     const t = r["time"] || "";
     return t >= tS && t <= tE;
   });
