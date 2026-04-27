@@ -488,6 +488,13 @@ def main() -> None:
         logger.error("No observations found in %s", args.obs_dir)
         sys.exit(1)
 
+    # Latest observation timestamp across all sources (used for cache validity).
+    obs_max_time: datetime = max(
+        (row["time"] for obs_list in all_obs.values() for row in obs_list),
+        default=start,
+    )
+    logger.info("Obs time range: %s → %s", start, obs_max_time)
+
     # ── Iterate AROME runs ──────────────────────────────────────────────────────
     lat2d = lon2d = None   # loaded once from the first successfully opened file
     all_pairs: list[dict] = []
@@ -500,14 +507,26 @@ def main() -> None:
                 continue
 
             cache_file = runs_dir / f"{run_time.strftime('%Y%m%d_%H')}.json"
+            run_end_dt = run_time + timedelta(hours=_MAX_LEAD_H)
+            # Obs fully cover this run's window if obs extend to within 12 h of run_end.
+            obs_covers_run = obs_max_time >= run_end_dt - timedelta(hours=12)
             if cache_file.exists() and not args.force:
                 # Load cached pairs
                 try:
                     data = json.loads(cache_file.read_text(encoding="utf-8"))
-                    all_pairs.extend(data)
-                    logger.debug("Loaded %d cached pairs from %s",
-                                 len(data), cache_file.name)
-                    continue
+                    cache_max_lead = (
+                        max(p["lead_h"] for p in data) if data else 0
+                    )
+                    # Invalidate if coverage is poor AND obs can now do better
+                    if cache_max_lead >= _MAX_LEAD_H - 12 or not obs_covers_run:
+                        all_pairs.extend(data)
+                        logger.debug("Loaded %d cached pairs from %s",
+                                     len(data), cache_file.name)
+                        continue
+                    logger.info(
+                        "Stale cache %s (max_lead=%dh, obs now to %s) – reprocessing",
+                        cache_file.name, int(cache_max_lead), obs_max_time.strftime("%Y-%m-%d %H:%M"),
+                    )
                 except Exception as exc:
                     logger.warning("Bad cache file %s: %s – reprocessing", cache_file, exc)
 
@@ -531,12 +550,19 @@ def main() -> None:
             else:
                 pairs = _process_run(run_time, all_obs, lat2d, lon2d)
 
-            # Save cache file (even empty, to avoid retrying unavailable dates)
-            try:
-                cache_file.write_text(
-                    json.dumps(pairs, ensure_ascii=False), encoding="utf-8")
-            except OSError as exc:
-                logger.warning("Cannot write cache %s: %s", cache_file, exc)
+            # Only write cache when obs fully cover this run's window.
+            # If they don't, leave uncached so the next cron pass can fill in more obs.
+            if obs_covers_run or not pairs:
+                try:
+                    cache_file.write_text(
+                        json.dumps(pairs, ensure_ascii=False), encoding="utf-8")
+                except OSError as exc:
+                    logger.warning("Cannot write cache %s: %s", cache_file, exc)
+            else:
+                logger.debug("Not caching %s: obs only to %s, run_end %s",
+                             cache_file.name,
+                             obs_max_time.strftime("%Y-%m-%d %H:%M"),
+                             run_end_dt.strftime("%Y-%m-%d %H:%M"))
 
             all_pairs.extend(pairs)
         current += timedelta(days=1)
