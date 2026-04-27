@@ -38,7 +38,7 @@ const SOURCE_LABELS = {
 let _data   = null;   // parsed verification.json
 let _source = null;
 let _var    = null;
-const _grp  = "6h";   // fixed 6-hour lead-time grouping
+const _grp  = "24h";  // fixed 24-hour lead-time grouping
 
 // Map state
 let _map         = null;
