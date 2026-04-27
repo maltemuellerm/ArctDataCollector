@@ -93,17 +93,68 @@ body {
   background: #f0fafd;
 }
 
+/* ── Observation group accordions ─────────────────────── */
 .obs-group {
-  margin-bottom: 0.3rem;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
 }
-.obs-heading {
+.obs-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.8rem 1rem;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  font-family: inherit;
   font-size: 0.78rem;
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: .07em;
-  margin-bottom: 0.4rem;
-  padding: 0 0.1rem;
+  text-align: left;
+  transition: background 0.15s;
+}
+.obs-toggle:hover { background: #f5f9fc; }
+.obs-group.collapsed .obs-toggle { border-bottom-color: transparent; }
+.obs-toggle::before {
+  content: "▾";
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--accent);
+  display: inline-block;
+  transition: transform 0.22s ease;
+  flex-shrink: 0;
+}
+.obs-group.collapsed .obs-toggle::before { transform: rotate(-90deg); }
+.obs-badge {
+  margin-left: auto;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  min-width: 1.6rem;
+  text-align: center;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.obs-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.28s ease;
+}
+.obs-group.collapsed .obs-body {
+  grid-template-rows: 0fr;
+}
+.obs-body-inner {
+  overflow: hidden;
+  padding: 0.85rem 1rem 1rem;
 }
 .obs-tag {
   font-size: 0.62rem;
@@ -138,6 +189,21 @@ body {
   font-weight: 500;
   color: var(--accent);
 }
+
+/* ── Click hint ──────────────────────────────────────── */
+.click-hint {
+  text-align: center;
+  color: var(--muted);
+  font-size: .85rem;
+  padding: .55rem 1rem;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border-left: 3px solid var(--accent2);
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+.click-hint.hidden { opacity: 0; pointer-events: none; }
 
 /* ── Detail subfigure ─────────────────────────────────── */
 .detail-card {

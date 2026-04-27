@@ -102,7 +102,9 @@ function _populateSourceSel() {
     opt.textContent = SOURCE_LABELS[src] || src;
     sel.appendChild(opt);
   });
-  _source = sources[0] || null;
+  const preferred = sources.includes("svalmiz") ? "svalmiz" : sources[0];
+  sel.value = preferred;
+  _source = preferred || null;
 }
 
 function _populateVarSel() {

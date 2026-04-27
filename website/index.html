@@ -16,11 +16,11 @@
     <header class="site-header">
       <div class="header-inner">
         <h1>Arctic Observations</h1>
-        <p>Arctic ship tracks, ice buoys &amp; NWP verification &mdash; real-time polar observations</p>
+        <p>Arctic ship tracks, ice buoys &amp; NWP verification</p>
         <nav class="site-nav">
           <a href="index.html" class="active">Map &amp; Explorer</a>
-          <a href="download.html">Download</a>
           <a href="verification.html">NWP Verification</a>
+          <a href="download.html">Download</a>
         </nav>
       </div>
     </header>
@@ -47,40 +47,87 @@
         </div>
       </section>
 
+      <!-- Click hint -->
+      <p id="click-hint" class="click-hint">
+        &#128270; Click any observation to view its time-series plot
+      </p>
+
       <!-- Ship quick-select cards -->
-      <div class="obs-group">
-        <h3 class="obs-heading">Ships</h3>
-        <div id="ship-cards" class="ship-cards"></div>
-      </div>
-
-      <!-- SIMBA ice buoy cards -->
-      <div class="obs-group">
-        <h3 class="obs-heading">SIMBA Ice Buoys</h3>
-        <div id="buoy-cards" class="ship-cards"></div>
-      </div>
-
-      <!-- Thermistor chain buoy cards -->
-      <div class="obs-group">
-        <h3 class="obs-heading">Thermistor Chain Buoys</h3>
-        <div id="thermistor-cards" class="ship-cards"></div>
+      <div class="obs-group collapsed" id="grp-ships">
+        <button class="obs-toggle" data-wrap="wrap-ships">
+          Ships
+          <span class="obs-badge" id="badge-ships"></span>
+        </button>
+        <div class="obs-body" id="wrap-ships">
+          <div class="obs-body-inner">
+            <div id="ship-cards" class="ship-cards"></div>
+          </div>
+        </div>
       </div>
 
       <!-- ArctSum 2025 buoy cards -->
-      <div class="obs-group">
-        <h3 class="obs-heading">ArctSum 2025 Buoys</h3>
-        <div id="arctsum-cards" class="ship-cards compact"></div>
+      <div class="obs-group collapsed" id="grp-arctsum">
+        <button class="obs-toggle" data-wrap="wrap-arctsum">
+          ArctSum 2025 Buoys
+          <span class="obs-badge" id="badge-arctsum"></span>
+        </button>
+        <div class="obs-body" id="wrap-arctsum">
+          <div class="obs-body-inner">
+            <div id="arctsum-cards" class="ship-cards compact"></div>
+          </div>
+        </div>
       </div>
 
       <!-- SvalMIZ 2026 buoy cards -->
-      <div class="obs-group">
-        <h3 class="obs-heading">SvalMIZ 2026 Buoys</h3>
-        <div id="svalmiz-cards" class="ship-cards compact"></div>
+      <div class="obs-group collapsed" id="grp-svalmiz">
+        <button class="obs-toggle" data-wrap="wrap-svalmiz">
+          SvalMIZ 2026 Buoys
+          <span class="obs-badge" id="badge-svalmiz"></span>
+        </button>
+        <div class="obs-body" id="wrap-svalmiz">
+          <div class="obs-body-inner">
+            <div id="svalmiz-cards" class="ship-cards compact"></div>
+          </div>
+        </div>
       </div>
 
       <!-- IABP buoy cards -->
-      <div class="obs-group">
-        <h3 class="obs-heading">IABP Arctic Buoys</h3>
-        <div id="iabp-cards" class="ship-cards compact"></div>
+      <div class="obs-group collapsed" id="grp-iabp">
+        <button class="obs-toggle" data-wrap="wrap-iabp">
+          IABP Arctic Buoys
+          <span class="obs-badge" id="badge-iabp"></span>
+        </button>
+        <div class="obs-body" id="wrap-iabp">
+          <div class="obs-body-inner">
+            <div id="iabp-cards" class="ship-cards compact"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SIMBA ice buoy cards -->
+      <div class="obs-group collapsed" id="grp-simba">
+        <button class="obs-toggle" data-wrap="wrap-simba">
+          SIMBA Ice Buoys
+          <span class="obs-badge" id="badge-simba"></span>
+        </button>
+        <div class="obs-body" id="wrap-simba">
+          <div class="obs-body-inner">
+            <div id="buoy-cards" class="ship-cards"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thermistor chain buoy cards -->
+      <div class="obs-group collapsed" id="grp-thermistor">
+        <button class="obs-toggle" data-wrap="wrap-thermistor">
+          Thermistor Chain Buoys
+          <span class="obs-badge" id="badge-thermistor"></span>
+        </button>
+        <div class="obs-body" id="wrap-thermistor">
+          <div class="obs-body-inner">
+            <div id="thermistor-cards" class="ship-cards"></div>
+          </div>
+        </div>
       </div>
 
       <!-- Detail subfigure (appears on click) -->

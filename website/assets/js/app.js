@@ -117,7 +117,11 @@ function selectItem(item) {
 
   const detailSection = document.getElementById("detail-section");
   detailSection.style.display = "";
-  if (!selectItem._initialLoad) detailSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  detailSection.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  // Fade out the click hint on first selection
+  const hint = document.getElementById("click-hint");
+  if (hint) hint.classList.add("hidden");
 
   // Create a filtered copy of the item for the detail renderer
   const filtered = { ...item, rows: visible.length ? visible : item.rows };
@@ -136,6 +140,15 @@ function selectItem(item) {
 
 /* ── Rebuild all cards ────────────────────────────────── */
 
+const _BADGE_MAP = {
+  "ship-cards":        "badge-ships",
+  "buoy-cards":        "badge-simba",
+  "thermistor-cards":  "badge-thermistor",
+  "arctsum-cards":     "badge-arctsum",
+  "svalmiz-cards":     "badge-svalmiz",
+  "iabp-cards":        "badge-iabp",
+};
+
 function rebuildCards(groups, tStart, tEnd) {
   for (const [containerId, items] of groups) {
     const el = document.getElementById(containerId);
@@ -150,6 +163,12 @@ function rebuildCards(groups, tStart, tEnd) {
       card.addEventListener("click", () => selectItem(item));
       el.appendChild(card);
     });
+    // Update count badge: active / total
+    const badgeEl = document.getElementById(_BADGE_MAP[containerId]);
+    if (badgeEl) {
+      const active = items.filter(i => rowsInWindow(i, tStart, tEnd).length > 0).length;
+      badgeEl.textContent = items.length === active ? items.length : `${active} / ${items.length}`;
+    }
   }
 }
 
@@ -205,11 +224,11 @@ async function init() {
 
   const cardGroups = [
     ["ship-cards", ships],
-    ["buoy-cards", buoys],
-    ["thermistor-cards", thermistors],
     ["arctsum-cards", arctsum],
     ["svalmiz-cards", svalmiz],
     ["iabp-cards", iabp],
+    ["buoy-cards", buoys],
+    ["thermistor-cards", thermistors],
   ];
 
   function onSliderChange() {
@@ -234,18 +253,19 @@ async function init() {
   sliderLo.addEventListener("input", onSliderChange);
   sliderHi.addEventListener("input", onSliderChange);
 
+  // ── Accordion toggles ──────────────────────────────────
+  document.querySelectorAll(".obs-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const grp = btn.closest(".obs-group");
+      grp.classList.toggle("collapsed");
+    });
+  });
+
   mapSection.style.display = "";
   _currentTStart = days[0];
   _currentTEnd   = days[days.length - 1];
   onSliderChange();
 
-  if (ships.length) {
-    selectItem._initialLoad = true;
-    selectItem(ships[0]);
-    selectItem._initialLoad = false;
-  }
-  window.scrollTo(0, 0);
-  setTimeout(() => window.scrollTo(0, 0), 400);
 }
 
 init();
