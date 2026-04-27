@@ -476,20 +476,30 @@ function _renderMap(scatter, varMeta) {
     ? null
     : buckets.find((b) => b.label === _mapLead);
 
-  // Collect filtered points
-  const pts = [];
+  // Collect filtered raw pairs
+  const rawPts = [];
   for (let k = 0; k < obs.length; k++) {
     if (lats[k] == null || lons[k] == null) continue;
     if (activeBucket && !(leads[k] >= activeBucket.lo && leads[k] < activeBucket.hi)) continue;
     const err = model[k] - obs[k];
     const v   = isDivergent ? err : Math.abs(err);
-    if (isFinite(v)) pts.push({ lat: lats[k], lon: lons[k], v, lead: leads[k] });
+    if (isFinite(v)) rawPts.push({ lat: lats[k], lon: lons[k], v });
   }
 
-  if (!pts.length) {
+  if (!rawPts.length) {
     document.getElementById("map-hint").textContent = "No observations in selected lead-time window.";
     return;
   }
+
+  // Aggregate by (lat, lon) — one dot per unique observation site, mean error
+  const locAgg = new Map();
+  for (const p of rawPts) {
+    const key = `${p.lat.toFixed(2)},${p.lon.toFixed(2)}`;
+    if (!locAgg.has(key)) locAgg.set(key, { lat: p.lat, lon: p.lon, sum: 0, n: 0 });
+    const e = locAgg.get(key);
+    e.sum += p.v; e.n++;
+  }
+  const pts = [...locAgg.values()].map((e) => ({ lat: e.lat, lon: e.lon, v: e.sum / e.n, n: e.n }));
 
   const vals = pts.map((p) => p.v);
   let vmin, vmax;
@@ -500,7 +510,7 @@ function _renderMap(scatter, varMeta) {
     vmin = 0; vmax = Math.max(...vals);
   }
 
-  const markers = pts.map(({ lat, lon, v, lead }) => {
+  const markers = pts.map(({ lat, lon, v, n }) => {
     const color = _valToColor(v, vmin, vmax, isDivergent);
     const sign  = isDivergent && v >= 0 ? "+" : "";
     return L.circleMarker([lat, lon], {
@@ -508,12 +518,12 @@ function _renderMap(scatter, varMeta) {
       color: "rgba(0,0,0,0.25)", weight: 0.5,
       fillColor: color, fillOpacity: 0.85,
     }).bindTooltip(
-      `${varMeta.label || _var}: ${sign}${v.toFixed(2)} ${units}<br>Lead: ${lead}\u202ah`
+      `${varMeta.label || _var}: ${sign}${v.toFixed(2)} ${units}<br>n\u202a=\u202a${n} pair${n !== 1 ? "s" : ""}`
     );
   });
   _dotLayer = L.layerGroup(markers).addTo(_map);
   document.getElementById("map-hint").textContent =
-    `${pts.length} observation${pts.length !== 1 ? "s" : ""} shown`;
+    `${pts.length} unique location${pts.length !== 1 ? "s" : ""} (${rawPts.length} pairs)`;
   _renderLegend(vmin, vmax, isDivergent, units);
 }
 

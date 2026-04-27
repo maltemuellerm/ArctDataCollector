@@ -47,7 +47,7 @@ _THREDDS_TMPL = (
 _RUN_HOURS   = (0, 12)   # 00Z and 12Z runs
 _MAX_LEAD_H  = 66        # AROME Arctic forecast horizon
 _MAX_DIST    = 0.5       # degrees – reject obs if nearest point is farther
-_MAX_SCATTER = 600       # max scatter pairs stored per source+variable (combined)
+_MAX_SCATTER = 5000      # max scatter pairs stored per source+variable (combined)
 _TIME_TOL_S  = 5400      # 90 min – max acceptable time mismatch to AROME step
 
 # ── Lead-time grouping schemes ─────────────────────────────────────────────────
