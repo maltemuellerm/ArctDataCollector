@@ -1,0 +1,14 @@
+[Unit]
+Description=Compute ECMWF IFS/AIFS Arctic verification (twice daily)
+Requires=compute-ecmwf-verification.service
+
+[Timer]
+# Run at 10:00 UTC (after 00Z run arrives ~07:00) and
+# 22:00 UTC (after 12Z run arrives ~19:00)
+OnCalendar=*-*-* 10,22:00:00
+# On first boot / missed run catch-up, start soon
+OnBootSec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
