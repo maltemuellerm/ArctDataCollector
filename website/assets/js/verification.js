@@ -38,7 +38,7 @@ const SOURCE_LABELS = {
 let _data   = null;   // parsed verification.json
 let _source = null;
 let _var    = null;
-let _grp    = "12h";
+const _grp  = "6h";   // fixed 6-hour lead-time grouping
 
 // Map state
 let _map         = null;
@@ -109,14 +109,6 @@ function _wireControls() {
   });
   document.getElementById("var-sel").addEventListener("change", (e) => {
     _var = e.target.value;
-    _render();
-  });
-  document.getElementById("grp-btns").addEventListener("click", (e) => {
-    const btn = e.target.closest(".vrf-grp-btn");
-    if (!btn) return;
-    document.querySelectorAll(".vrf-grp-btn").forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
-    _grp = btn.dataset.grp;
     _render();
   });
   document.getElementById("map-metric-sel").addEventListener("change", (e) => {
