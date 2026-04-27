@@ -241,7 +241,7 @@ function _renderMetricsChart(buckets, varMeta) {
     plot_bgcolor: "#f8fbfc",
     paper_bgcolor: "#ffffff",
     margin: { t: 20, r: 70, b: 60, l: 65 },
-    height: 380,
+    height: 320,
     shapes: [{
       type: "line", xref: "paper", x0: 0, x1: 1,
       yref: "y2", y0: 0, y1: 0,
@@ -360,7 +360,7 @@ function _renderScatter(scatter, varMeta) {
     plot_bgcolor: "#f8fbfc",
     paper_bgcolor: "#ffffff",
     margin: { t: 20, r: 25, b: 70, l: 65 },
-    height: 440,
+    height: 380,
   };
 
   Plotly.newPlot("scatter-plot", traces, layout,
@@ -470,7 +470,7 @@ function _renderErrorVsObs(scatter, varMeta) {
     plot_bgcolor: "#f8fbfc",
     paper_bgcolor: "#ffffff",
     margin: { t: 20, r: 25, b: 70, l: 70 },
-    height: 420,
+    height: 360,
     shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1,
                yref: "y", y0: 0, y1: 0,
                line: { color: "#888", width: 1, dash: "dot" } }],

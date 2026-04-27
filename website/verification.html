@@ -79,37 +79,43 @@
         <p class="vrf-map-hint" id="map-hint"></p>
       </section>
 
-      <!-- Error metrics chart ───────────────────────────────────────────── -->
-      <section class="card" id="metrics-card" style="display:none">
-        <h2 class="vrf-card-title">Forecast error by lead time</h2>
-        <div id="metrics-plot" class="vrf-plot"></div>
-      </section>
+      <!-- Error metrics chart + Summary table ──────────────────────────── -->
+      <div class="vrf-grid">
+        <section class="card" id="metrics-card" style="display:none">
+          <h2 class="vrf-card-title">Forecast error by lead time</h2>
+          <div id="metrics-plot" class="vrf-plot"></div>
+        </section>
 
-      <!-- Summary table ────────────────────────────────────────────────── -->
-      <section class="card" id="table-card" style="display:none">
-        <h2 class="vrf-card-title">Statistics summary</h2>
-        <div id="stats-table" class="vrf-table-wrap"></div>
-      </section>
+        <!-- Summary table -->
+        <section class="card" id="table-card" style="display:none">
+          <h2 class="vrf-card-title">Statistics summary</h2>
+          <div id="stats-table" class="vrf-table-wrap"></div>
+        </section>
+      </div>
 
-      <!-- Scatter plot ─────────────────────────────────────────────────── -->
-      <section class="card" id="scatter-card" style="display:none">
-        <h2 class="vrf-card-title">Observation vs. model (scatter)</h2>
-        <p class="vrf-scatter-hint">Points coloured by lead-time group &mdash; up to 600 samples shown.</p>
-        <div id="scatter-plot" class="vrf-plot vrf-scatter-plot"></div>
-      </section>
+      <!-- Scatter plot + Error vs observed ────────────────────────────── -->
+      <div class="vrf-grid">
+        <section class="card" id="scatter-card" style="display:none">
+          <h2 class="vrf-card-title">Observation vs. model (scatter)</h2>
+          <p class="vrf-scatter-hint">Points coloured by lead-time group.</p>
+          <div id="scatter-plot" class="vrf-plot vrf-scatter-plot"></div>
+        </section>
 
-      <!-- Error vs observed ──────────────────────────────────────────── -->
-      <section class="card" id="errvsobs-card" style="display:none">
-        <h2 class="vrf-card-title">Error vs. observed value</h2>        <div class="vrf-map-controls">
-          <label class="vrf-label">
-            Lead-time filter
-            <select id="errvsobs-lead-sel" class="vrf-select">
-              <option value="all">All lead times</option>
-            </select>
-          </label>
-        </div>        <p class="vrf-scatter-hint">Model &minus; obs as a function of the observed value &mdash; reveals state-dependent biases.</p>
-        <div id="errvsobs-plot" class="vrf-plot"></div>
-      </section>
+        <!-- Error vs observed -->
+        <section class="card" id="errvsobs-card" style="display:none">
+          <h2 class="vrf-card-title">Error vs. observed value</h2>
+          <div class="vrf-map-controls">
+            <label class="vrf-label">
+              Lead-time filter
+              <select id="errvsobs-lead-sel" class="vrf-select">
+                <option value="all">All lead times</option>
+              </select>
+            </label>
+          </div>
+          <p class="vrf-scatter-hint">Model &minus; obs vs. observed &mdash; reveals state-dependent biases.</p>
+          <div id="errvsobs-plot" class="vrf-plot"></div>
+        </section>
+      </div>
 
       <!-- About ────────────────────────────────────────────────────────── -->
       <section class="card vrf-about-card" id="about-card" style="display:none">

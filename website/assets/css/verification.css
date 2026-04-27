@@ -1,5 +1,18 @@
 /* ── AROME Verification page styles ──────────────────────────────────────── */
 
+/* Full-width override for verification page sections */
+.vrf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  width: 100%;
+}
+.vrf-grid > .card { margin: 0; }
+
+@media (max-width: 860px) {
+  .vrf-grid { grid-template-columns: 1fr; }
+}
+
 /* Controls card */
 .vrf-controls-card { padding: 1rem 1.2rem; }
 
@@ -75,10 +88,10 @@
 /* Plotly containers */
 .vrf-plot {
   width: 100%;
-  min-height: 380px;
-  padding: .5rem .8rem 1rem;
+  min-height: 320px;
+  padding: .5rem .8rem .8rem;
 }
-.vrf-scatter-plot { min-height: 420px; }
+.vrf-scatter-plot { min-height: 360px; }
 
 .vrf-scatter-hint {
   font-size: .82rem;
@@ -147,7 +160,7 @@
 
 .vrf-obs-map {
   width: 100%;
-  height: 430px;
+  height: 380px;
 }
 
 .vrf-map-legend {
