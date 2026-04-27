@@ -38,7 +38,8 @@ const SOURCE_LABELS = {
 let _data   = null;   // parsed verification.json
 let _source = null;
 let _var    = null;
-const _grp  = "24h";  // fixed 24-hour lead-time grouping
+const _grp       = "24h";  // lead-time filter & scatter grouping
+const _metricsGrp = "6h";  // finer grouping for metrics chart & table
 
 // Map state
 let _map         = null;
@@ -131,7 +132,7 @@ function _wireControls() {
 function _render() {
   if (!_source || !_var) return;
 
-  const statsForVar = ((_data.stats[_source] || {})[_var] || {})[_grp];
+  const statsForVar = ((_data.stats[_source] || {})[_var] || {})[_metricsGrp];
   const scatterForVar = (_data.scatter[_source] || {})[_var];
   const varMeta = (_data.variables || {})[_var] || {};
   const period = _data.period || {};
