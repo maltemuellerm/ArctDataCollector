@@ -365,6 +365,26 @@ def _stats(obs_arr: np.ndarray, model_arr: np.ndarray) -> dict:
     }
 
 
+_GROSS_ERROR_SIGMA = 3.0   # reject pairs with |error| > N * std(errors)
+
+def _gross_error_filter(triplets: list[tuple]) -> tuple[list[tuple], int]:
+    """Remove pairs where |error| > _GROSS_ERROR_SIGMA * std(errors).
+    Uses a single pass (not iterative) for speed; robust against outlier pull
+    because std is dominated by the bulk distribution when n is large.
+    Returns (filtered_triplets, n_rejected).
+    """
+    if len(triplets) < 10:
+        return triplets, 0
+    errors = np.array([t[1] - t[0] for t in triplets])
+    mu  = float(np.mean(errors))
+    sig = float(np.std(errors))
+    if sig == 0:
+        return triplets, 0
+    keep = np.abs(errors - mu) <= _GROSS_ERROR_SIGMA * sig
+    filtered = [t for t, k in zip(triplets, keep) if k]
+    return filtered, len(triplets) - len(filtered)
+
+
 def _compute_verification(all_pairs: list[dict]) -> dict:
     """Aggregate pairs into stats + scatter data per (source, variable)."""
 
@@ -381,6 +401,13 @@ def _compute_verification(all_pairs: list[dict]) -> dict:
         stats_out[source] = {}
         scatter_out[source] = {}
         for var, triplets in var_dict.items():
+            # Gross error filter before any stats or scatter sampling
+            triplets, n_rej = _gross_error_filter(triplets)
+            if n_rej:
+                logger.info("Gross error filter: %s/%s removed %d pairs (%.1f%%)",
+                            source, var, n_rej,
+                            100.0 * n_rej / (len(triplets) + n_rej))
+
             obs_all   = np.array([t[0] for t in triplets])
             model_all = np.array([t[1] for t in triplets])
             leads_all = np.array([t[2] for t in triplets])
