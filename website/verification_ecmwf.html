@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AROME Verification — Arctic Observations</title>
+    <title>ECMWF Verification — Arctic Observations</title>
     <link rel="stylesheet" href="assets/css/styles.css" />
     <link rel="stylesheet" href="assets/css/download.css" />
     <link rel="stylesheet" href="assets/css/verification.css" />
@@ -19,8 +19,8 @@
         <nav class="site-nav">
           <a href="index.html">Map &amp; Explorer</a>
           <a href="download.html">Download</a>
-          <a href="verification.html" class="active">AROME Verification</a>
-          <a href="verification_ecmwf.html">ECMWF Verification</a>
+          <a href="verification.html">AROME Verification</a>
+          <a href="verification_ecmwf.html" class="active">ECMWF Verification</a>
         </nav>
       </div>
     </header>
@@ -32,6 +32,14 @@
       <!-- Controls ─────────────────────────────────────────────────────── -->
       <section class="card vrf-controls-card" id="vrf-controls" style="display:none">
         <div class="vrf-controls-row">
+
+          <label class="vrf-label">
+            Model
+            <select id="model-sel" class="vrf-select">
+              <option value="ifs">IFS HRES</option>
+              <option value="aifs">AIFS</option>
+            </select>
+          </label>
 
           <label class="vrf-label">
             Observation source
@@ -79,7 +87,6 @@
           <div id="metrics-plot" class="vrf-plot"></div>
         </section>
 
-        <!-- Summary table -->
         <section class="card" id="table-card" style="display:none">
           <h2 class="vrf-card-title">Statistics summary</h2>
           <div id="stats-table" class="vrf-table-wrap"></div>
@@ -94,7 +101,6 @@
           <div id="scatter-plot" class="vrf-plot vrf-scatter-plot"></div>
         </section>
 
-        <!-- Error vs observed -->
         <section class="card" id="errvsobs-card" style="display:none">
           <h2 class="vrf-card-title">Error vs. observed value</h2>
           <p class="vrf-scatter-hint">Model &minus; obs vs. observed &mdash; reveals state-dependent biases.</p>
@@ -105,21 +111,11 @@
       <!-- About ────────────────────────────────────────────────────────── -->
       <section class="card vrf-about-card" id="about-card" style="display:none">
         <h2 class="vrf-card-title">About this page</h2>
-        <p>
-          Each surface observation is paired with the
-          <a href="https://thredds.met.no/thredds/catalog/aromearcticarchive/catalog.html"
-             target="_blank" rel="noopener">AROME&nbsp;Arctic 2.5&nbsp;km</a>
-          deterministic forecast (00&nbsp;Z and 12&nbsp;Z runs).
-          The nearest model grid point is used (max 0.5° distance accepted).
-          RMSE&nbsp;= root-mean-square error, MAE&nbsp;= mean absolute error,
-          BIAS&nbsp;= mean(model&nbsp;&minus;&nbsp;obs)
-          — positive bias means the model is too high.
-          Statistics are updated once daily at 06:00&nbsp;UTC.
-        </p>
+        <p id="about-text"></p>
       </section>
 
     </main>
 
-    <script src="assets/js/verification.js"></script>
+    <script src="assets/js/verification_ecmwf.js"></script>
   </body>
 </html>
