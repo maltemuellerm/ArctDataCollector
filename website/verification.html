@@ -100,8 +100,14 @@
 
       <!-- Error vs observed ──────────────────────────────────────────── -->
       <section class="card" id="errvsobs-card" style="display:none">
-        <h2 class="vrf-card-title">Error vs. observed value</h2>
-        <p class="vrf-scatter-hint">Model &minus; obs as a function of the observed value &mdash; reveals state-dependent biases.</p>
+        <h2 class="vrf-card-title">Error vs. observed value</h2>        <div class="vrf-map-controls">
+          <label class="vrf-label">
+            Lead-time filter
+            <select id="errvsobs-lead-sel" class="vrf-select">
+              <option value="all">All lead times</option>
+            </select>
+          </label>
+        </div>        <p class="vrf-scatter-hint">Model &minus; obs as a function of the observed value &mdash; reveals state-dependent biases.</p>
         <div id="errvsobs-plot" class="vrf-plot"></div>
       </section>
 

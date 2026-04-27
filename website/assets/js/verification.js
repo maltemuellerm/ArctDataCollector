@@ -46,6 +46,7 @@ let _dotLayer    = null;
 let _domainLayer = null;
 let _mapMetric   = "bias";
 let _mapLead     = "all";
+let _errvsobsLead = "all";
 
 // ── Init ───────────────────────────────────────────────────────────────────────
 async function init() {
@@ -130,6 +131,12 @@ function _wireControls() {
     const scatter = (_data.scatter[_source] || {})[_var];
     const varMeta = (_data.variables || {})[_var] || {};
     _renderMap(scatter, varMeta);
+  });
+  document.getElementById("errvsobs-lead-sel").addEventListener("change", (e) => {
+    _errvsobsLead = e.target.value;
+    const scatter = (_data.scatter[_source] || {})[_var];
+    const varMeta = (_data.variables || {})[_var] || {};
+    _renderErrorVsObs(scatter, varMeta);
   });
   _populateVarSel();
 }
@@ -369,58 +376,84 @@ function _renderErrorVsObs(scatter, varMeta) {
   }
   card.style.display = "";
 
-  const obs    = scatter.obs;
-  const model  = scatter.model;
-  const leads  = scatter.lead;
-  const unitLbl = varMeta.units ? ` (${varMeta.units})` : "";
+  const obsAll   = scatter.obs;
+  const modelAll = scatter.model;
+  const leadsAll = scatter.lead;
+  const unitLbl  = varMeta.units ? ` (${varMeta.units})` : "";
 
   const buckets = (_data.groupings || {})[_grp] || [];
+  const activeBucket = _errvsobsLead === "all"
+    ? null
+    : buckets.find((b) => b.label === _errvsobsLead);
 
-  // One trace per lead-time bucket
-  const traceMap = new Map();
-  buckets.forEach((b, idx) => {
-    traceMap.set(b.label, {
-      type: "scattergl",
-      mode: "markers",
-      name: b.label,
-      x: [], y: [],
-      marker: { color: GROUP_COLORS[idx % GROUP_COLORS.length], size: 4, opacity: 0.55 },
+  // Filter to selected lead-time bucket
+  const obs   = [], model = [], leads = [];
+  obsAll.forEach((o, k) => {
+    const lead = leadsAll[k];
+    if (activeBucket && !(lead >= activeBucket.lo && lead < activeBucket.hi)) return;
+    obs.push(o); model.push(modelAll[k]); leads.push(lead);
+  });
+
+  if (!obs.length) {
+    card.style.display = "none";
+    return;
+  }
+
+  const traces = [];
+
+  if (activeBucket) {
+    // Single bucket: one grey trace
+    traces.push({
+      type: "scattergl", mode: "markers",
+      name: activeBucket.label,
+      x: obs, y: obs.map((o, k) => +(model[k] - o).toFixed(4)),
+      marker: { color: "#5b8fd4", size: 4, opacity: 0.55 },
       hovertemplate:
-        `Obs: %{x:.2f} ${varMeta.units || ""}<br>Error: %{y:+.2f} ${varMeta.units || ""}<extra>${b.label}</extra>`,
+        `Obs: %{x:.2f} ${varMeta.units || ""}<br>Error: %{y:+.2f} ${varMeta.units || ""}<extra>${activeBucket.label}</extra>`,
     });
-  });
+  } else {
+    // All buckets: one coloured trace each
+    const traceMap = new Map();
+    buckets.forEach((b, idx) => {
+      traceMap.set(b.label, {
+        type: "scattergl", mode: "markers",
+        name: b.label,
+        x: [], y: [],
+        marker: { color: GROUP_COLORS[idx % GROUP_COLORS.length], size: 4, opacity: 0.55 },
+        hovertemplate:
+          `Obs: %{x:.2f} ${varMeta.units || ""}<br>Error: %{y:+.2f} ${varMeta.units || ""}<extra>${b.label}</extra>`,
+      });
+    });
+    obs.forEach((o, k) => {
+      const bucket = buckets.find((b) => leads[k] >= b.lo && leads[k] < b.hi);
+      if (!bucket) return;
+      const tr = traceMap.get(bucket.label);
+      if (tr) { tr.x.push(o); tr.y.push(+(model[k] - o).toFixed(4)); }
+    });
+    traces.push(...traceMap.values());
+  }
 
-  obs.forEach((o, k) => {
-    const lead = leads[k];
-    const err  = model[k] - o;
-    const bucket = buckets.find((b) => lead >= b.lo && lead < b.hi);
-    if (!bucket) return;
-    const tr = traceMap.get(bucket.label);
-    if (tr) { tr.x.push(o); tr.y.push(+err.toFixed(4)); }
-  });
-
-  // Zero line + linear trend (all points combined)
-  const allObs  = obs;
+  // Linear trend over visible points
   const allErrs = obs.map((o, k) => model[k] - o);
-  const n = allObs.length;
+  const n = obs.length;
   let slope = 0, intercept = 0;
   if (n > 1) {
-    const meanX = allObs.reduce((s, v) => s + v, 0) / n;
+    const meanX = obs.reduce((s, v) => s + v, 0) / n;
     const meanY = allErrs.reduce((s, v) => s + v, 0) / n;
-    const num = allObs.reduce((s, v, k) => s + (v - meanX) * (allErrs[k] - meanY), 0);
-    const den = allObs.reduce((s, v)    => s + (v - meanX) ** 2, 0);
+    const num = obs.reduce((s, v, k) => s + (v - meanX) * (allErrs[k] - meanY), 0);
+    const den = obs.reduce((s, v)    => s + (v - meanX) ** 2, 0);
     if (den !== 0) { slope = num / den; intercept = meanY - slope * meanX; }
   }
-  const xMin = Math.min(...allObs);
-  const xMax = Math.max(...allObs);
-  const trendTrace = {
+  const xMin = Math.min(...obs);
+  const xMax = Math.max(...obs);
+  traces.push({
     type: "scatter", mode: "lines",
     name: `Trend (slope ${slope >= 0 ? "+" : ""}${slope.toFixed(3)})`,
     x: [xMin, xMax],
     y: [slope * xMin + intercept, slope * xMax + intercept],
     line: { color: "#333", width: 2, dash: "dash" },
-    hoverinfo: "skip", showlegend: true,
-  };
+    hoverinfo: "skip",
+  });
 
   const errPad = (Math.max(...allErrs.map(Math.abs)) || 1) * 0.08;
   const obsPad = (xMax - xMin) * 0.03;
@@ -443,7 +476,7 @@ function _renderErrorVsObs(scatter, varMeta) {
                line: { color: "#888", width: 1, dash: "dot" } }],
   };
 
-  Plotly.newPlot("errvsobs-plot", [...traceMap.values(), trendTrace], layout,
+  Plotly.newPlot("errvsobs-plot", traces, layout,
     { responsive: true, displaylogo: false });
 }
 
@@ -498,19 +531,23 @@ function _renderLegend(vmin, vmax, isDivergent, units) {
 // ── Map: lead-time selector population ────────────────────────────────────────
 function _updateMapLeadSel() {
   const sel = document.getElementById("map-lead-sel");
-  if (!_data || !sel) return;
+  const sel2 = document.getElementById("errvsobs-lead-sel");
+  if (!_data) return;
   const buckets = (_data.groupings || {})[_grp] || [];
-  const cur = sel.value;
-  sel.innerHTML = `<option value="all">All lead times</option>`;
-  buckets.forEach((b) => {
-    const opt = document.createElement("option");
-    opt.value = b.label;
-    opt.textContent = b.label;
-    sel.appendChild(opt);
-  });
-  // Restore previous selection if still valid
-  if ([...sel.options].some((o) => o.value === cur)) sel.value = cur;
+  for (const s of [sel, sel2]) {
+    if (!s) continue;
+    const cur = s.value;
+    s.innerHTML = `<option value="all">All lead times</option>`;
+    buckets.forEach((b) => {
+      const opt = document.createElement("option");
+      opt.value = b.label;
+      opt.textContent = b.label;
+      s.appendChild(opt);
+    });
+    if ([...s.options].some((o) => o.value === cur)) s.value = cur;
+  }
   _mapLead = sel.value;
+  _errvsobsLead = sel2.value;
 }
 
 // ── Map: init + render ─────────────────────────────────────────────────────────
