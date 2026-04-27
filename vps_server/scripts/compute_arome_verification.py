@@ -27,7 +27,6 @@ import csv
 import json
 import logging
 import math
-import random
 import sys
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
@@ -47,7 +46,7 @@ _THREDDS_TMPL = (
 _RUN_HOURS   = (0, 12)   # 00Z and 12Z runs
 _MAX_LEAD_H  = 66        # AROME Arctic forecast horizon
 _MAX_DIST    = 0.5       # degrees – reject obs if nearest point is farther
-_MAX_SCATTER = 5000      # max scatter pairs stored per source+variable (combined)
+_MAX_SCATTER = None     # no cap – store all pairs for unbiased lead-time coverage
 _TIME_TOL_S  = 5400      # 90 min – max acceptable time mismatch to AROME step
 
 # ── Lead-time grouping schemes ─────────────────────────────────────────────────
@@ -430,19 +429,13 @@ def _compute_verification(all_pairs: list[dict]) -> dict:
 
             stats_out[source][var] = grp_stats
 
-            # Scatter data: cap at _MAX_SCATTER, preserve lead info
-            n_total = len(triplets)
-            if n_total > _MAX_SCATTER:
-                idx = random.sample(range(n_total), _MAX_SCATTER)
-                samp = [triplets[i] for i in sorted(idx)]
-            else:
-                samp = triplets
+            # Scatter data: store all pairs (no sampling)
             scatter_out[source][var] = {
-                "obs":   [round(t[0], 4) for t in samp],
-                "model": [round(t[1], 4) for t in samp],
-                "lead":  [round(t[2], 2) for t in samp],
-                "lat":   [t[3] for t in samp],
-                "lon":   [t[4] for t in samp],
+                "obs":   [round(t[0], 4) for t in triplets],
+                "model": [round(t[1], 4) for t in triplets],
+                "lead":  [round(t[2], 2) for t in triplets],
+                "lat":   [t[3] for t in triplets],
+                "lon":   [t[4] for t in triplets],
             }
 
     return {"stats": stats_out, "scatter": scatter_out}
