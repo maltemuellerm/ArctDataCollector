@@ -213,14 +213,14 @@ function _renderMetricsChart(buckets, varMeta) {
     yaxis: {
       title: `Error${unitLbl}`,
       side: "left",
-      range: [-5, 5],
+      autorange: true,
       showgrid: true, gridcolor: "#eee",
     },
     yaxis2: {
       title: `BIAS${unitLbl}`,
       side: "right",
       overlaying: "y",
-      range: [-5, 5],
+      autorange: true,
       zeroline: true, zerolinecolor: "#ccc", zerolinewidth: 1.5,
       showgrid: false,
     },
@@ -613,8 +613,13 @@ function _renderMap(scatter, varMeta) {
   const vals = pts.map((p) => p.v);
   let vmin, vmax;
   if (isDivergent) {
-    const absmax = Math.max(...vals.map(Math.abs));
-    vmin = -absmax; vmax = absmax;
+    // For temperature bias, fix to ±5 °C; otherwise auto-scale
+    if (_var === "air_temp" || _var === "sea_surface_temp") {
+      vmin = -5; vmax = 5;
+    } else {
+      const absmax = Math.max(...vals.map(Math.abs));
+      vmin = -absmax; vmax = absmax;
+    }
   } else {
     vmin = 0; vmax = Math.max(...vals);
   }
