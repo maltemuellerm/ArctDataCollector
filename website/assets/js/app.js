@@ -117,7 +117,7 @@ function selectItem(item) {
 
   const detailSection = document.getElementById("detail-section");
   detailSection.style.display = "";
-  detailSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (!selectItem._initialLoad) detailSection.scrollIntoView({ behavior: "smooth", block: "start" });
 
   // Create a filtered copy of the item for the detail renderer
   const filtered = { ...item, rows: visible.length ? visible : item.rows };
@@ -239,7 +239,13 @@ async function init() {
   _currentTEnd   = days[days.length - 1];
   onSliderChange();
 
-  if (ships.length) selectItem(ships[0]);
+  if (ships.length) {
+    selectItem._initialLoad = true;
+    selectItem(ships[0]);
+    selectItem._initialLoad = false;
+  }
+  window.scrollTo(0, 0);
+  setTimeout(() => window.scrollTo(0, 0), 400);
 }
 
 init();
