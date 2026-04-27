@@ -15,3 +15,6 @@ StandardError=append:/opt/arct-collector/logs/ecmwf_verification.log
 
 # MARS requests can take 10–30 min for queue + download; allow up to 4 h
 TimeoutStartSec=14400
+
+[Install]
+WantedBy=multi-user.target

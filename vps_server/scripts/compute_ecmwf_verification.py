@@ -73,9 +73,10 @@ _MODELS: dict[str, dict] = {
     },
 }
 
-# Arctic domain — N/W/S/E format for MARS "area" keyword.
-# Covers Svalbard, Barents Sea, Kara Sea, Arctic Ocean (all obs sources).
-_AREA   = "90/-30/60/80"
+# Pan-Arctic domain — N/W/S/E format for MARS "area" keyword.
+# Full 360° longitude coverage north of 60°N so that all Arctic obs sources
+# (including North America, Russia east, Bering Strait) are included.
+_AREA   = "90/-180/60/180"
 _GRID   = "0.25/0.25"
 # GRIB parameter codes: 2m temp, skin temp, MSLP, 10m u-wind, 10m v-wind
 _PARAMS = "167/235/151/165/166"
@@ -634,8 +635,8 @@ def _run_model(
         "variables": _VAR_META,
         # Regular lat/lon box — four corners of the MARS domain
         "domain": [
-            [90.0, -30.0], [90.0, 80.0],
-            [60.0,  80.0], [60.0, -30.0],
+            [90.0, -180.0], [90.0, 180.0],
+            [60.0,  180.0], [60.0, -180.0],
         ],
         "stats":   result["stats"],
         "scatter": result["scatter"],

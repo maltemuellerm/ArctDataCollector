@@ -8,6 +8,10 @@ Type=oneshot
 User=root
 WorkingDirectory=/opt/arct-collector
 ExecStart=/opt/arct-collector/.venv/bin/python3 /opt/arct-collector/scripts/compute_arome_verification.py
-StandardOutput=journal
-StandardError=journal
+StandardOutput=append:/opt/arct-collector/logs/arome_verification.log
+StandardError=append:/opt/arct-collector/logs/arome_verification.log
 Environment=PYTHONUNBUFFERED=1
+TimeoutStartSec=7200
+
+[Install]
+WantedBy=multi-user.target
