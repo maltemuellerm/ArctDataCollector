@@ -51,6 +51,13 @@
             </div>
           </div>
 
+          <label class="vrf-label">
+            Lead-time filter
+            <select id="lead-sel" class="vrf-select">
+              <option value="all">All lead times</option>
+            </select>
+          </label>
+
         </div>
 
         <div class="vrf-meta" id="vrf-meta"></div>
@@ -65,12 +72,6 @@
             <select id="map-metric-sel" class="vrf-select">
               <option value="bias">Bias (model &minus; obs)</option>
               <option value="abserror">Absolute error</option>
-            </select>
-          </label>
-          <label class="vrf-label">
-            Lead-time filter
-            <select id="map-lead-sel" class="vrf-select">
-              <option value="all">All lead times</option>
             </select>
           </label>
         </div>
@@ -104,14 +105,6 @@
         <!-- Error vs observed -->
         <section class="card" id="errvsobs-card" style="display:none">
           <h2 class="vrf-card-title">Error vs. observed value</h2>
-          <div class="vrf-map-controls">
-            <label class="vrf-label">
-              Lead-time filter
-              <select id="errvsobs-lead-sel" class="vrf-select">
-                <option value="all">All lead times</option>
-              </select>
-            </label>
-          </div>
           <p class="vrf-scatter-hint">Model &minus; obs vs. observed &mdash; reveals state-dependent biases.</p>
           <div id="errvsobs-plot" class="vrf-plot"></div>
         </section>

@@ -45,8 +45,7 @@ let _map         = null;
 let _dotLayer    = null;
 let _domainLayer = null;
 let _mapMetric   = "bias";
-let _mapLead     = "all";
-let _errvsobsLead = "all";
+let _lead        = "all";  // single global lead-time filter
 
 // ── Init ───────────────────────────────────────────────────────────────────────
 async function init() {
@@ -126,16 +125,11 @@ function _wireControls() {
     const varMeta = (_data.variables || {})[_var] || {};
     _renderMap(scatter, varMeta);
   });
-  document.getElementById("map-lead-sel").addEventListener("change", (e) => {
-    _mapLead = e.target.value;
+  document.getElementById("lead-sel").addEventListener("change", (e) => {
+    _lead = e.target.value;
     const scatter = (_data.scatter[_source] || {})[_var];
     const varMeta = (_data.variables || {})[_var] || {};
     _renderMap(scatter, varMeta);
-  });
-  document.getElementById("errvsobs-lead-sel").addEventListener("change", (e) => {
-    _errvsobsLead = e.target.value;
-    const scatter = (_data.scatter[_source] || {})[_var];
-    const varMeta = (_data.variables || {})[_var] || {};
     _renderErrorVsObs(scatter, varMeta);
   });
   _populateVarSel();
@@ -382,9 +376,9 @@ function _renderErrorVsObs(scatter, varMeta) {
   const unitLbl  = varMeta.units ? ` (${varMeta.units})` : "";
 
   const buckets = (_data.groupings || {})[_grp] || [];
-  const activeBucket = _errvsobsLead === "all"
+  const activeBucket = _lead === "all"
     ? null
-    : buckets.find((b) => b.label === _errvsobsLead);
+    : buckets.find((b) => b.label === _lead);
 
   // Filter to selected lead-time bucket
   const obs   = [], model = [], leads = [];
@@ -530,24 +524,19 @@ function _renderLegend(vmin, vmax, isDivergent, units) {
 
 // ── Map: lead-time selector population ────────────────────────────────────────
 function _updateMapLeadSel() {
-  const sel = document.getElementById("map-lead-sel");
-  const sel2 = document.getElementById("errvsobs-lead-sel");
-  if (!_data) return;
+  const sel = document.getElementById("lead-sel");
+  if (!_data || !sel) return;
   const buckets = (_data.groupings || {})[_grp] || [];
-  for (const s of [sel, sel2]) {
-    if (!s) continue;
-    const cur = s.value;
-    s.innerHTML = `<option value="all">All lead times</option>`;
-    buckets.forEach((b) => {
-      const opt = document.createElement("option");
-      opt.value = b.label;
-      opt.textContent = b.label;
-      s.appendChild(opt);
-    });
-    if ([...s.options].some((o) => o.value === cur)) s.value = cur;
-  }
-  _mapLead = sel.value;
-  _errvsobsLead = sel2.value;
+  const cur = sel.value;
+  sel.innerHTML = `<option value="all">All lead times</option>`;
+  buckets.forEach((b) => {
+    const opt = document.createElement("option");
+    opt.value = b.label;
+    opt.textContent = b.label;
+    sel.appendChild(opt);
+  });
+  if ([...sel.options].some((o) => o.value === cur)) sel.value = cur;
+  _lead = sel.value;
 }
 
 // ── Map: init + render ─────────────────────────────────────────────────────────
@@ -598,9 +587,9 @@ function _renderMap(scatter, varMeta) {
 
   // Find active bucket
   const buckets = (_data.groupings || {})[_grp] || [];
-  const activeBucket = _mapLead === "all"
+  const activeBucket = _lead === "all"
     ? null
-    : buckets.find((b) => b.label === _mapLead);
+    : buckets.find((b) => b.label === _lead);
 
   // Collect filtered raw pairs
   const rawPts = [];
