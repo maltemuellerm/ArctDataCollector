@@ -152,10 +152,12 @@ function _render() {
     _showNoData("metrics-card");
     _showNoData("table-card");
     _showNoData("scatter-card");
+    _showNoData("errvsobs-card");
   } else {
     _renderMetricsChart(statsForVar, varMeta);
     _renderTable(statsForVar, varMeta);
     _renderScatter(scatterForVar, varMeta);
+    _renderErrorVsObs(scatterForVar, varMeta);
   }
 
   _updateMapLeadSel();
@@ -355,6 +357,93 @@ function _renderScatter(scatter, varMeta) {
   };
 
   Plotly.newPlot("scatter-plot", traces, layout,
+    { responsive: true, displaylogo: false });
+}
+
+// ── Error vs. observed ────────────────────────────────────────────────────────
+function _renderErrorVsObs(scatter, varMeta) {
+  const card = document.getElementById("errvsobs-card");
+  if (!scatter || !scatter.obs || scatter.obs.length === 0) {
+    card.style.display = "none";
+    return;
+  }
+  card.style.display = "";
+
+  const obs    = scatter.obs;
+  const model  = scatter.model;
+  const leads  = scatter.lead;
+  const unitLbl = varMeta.units ? ` (${varMeta.units})` : "";
+
+  const buckets = (_data.groupings || {})[_grp] || [];
+
+  // One trace per lead-time bucket
+  const traceMap = new Map();
+  buckets.forEach((b, idx) => {
+    traceMap.set(b.label, {
+      type: "scattergl",
+      mode: "markers",
+      name: b.label,
+      x: [], y: [],
+      marker: { color: GROUP_COLORS[idx % GROUP_COLORS.length], size: 4, opacity: 0.55 },
+      hovertemplate:
+        `Obs: %{x:.2f} ${varMeta.units || ""}<br>Error: %{y:+.2f} ${varMeta.units || ""}<extra>${b.label}</extra>`,
+    });
+  });
+
+  obs.forEach((o, k) => {
+    const lead = leads[k];
+    const err  = model[k] - o;
+    const bucket = buckets.find((b) => lead >= b.lo && lead < b.hi);
+    if (!bucket) return;
+    const tr = traceMap.get(bucket.label);
+    if (tr) { tr.x.push(o); tr.y.push(+err.toFixed(4)); }
+  });
+
+  // Zero line + linear trend (all points combined)
+  const allObs  = obs;
+  const allErrs = obs.map((o, k) => model[k] - o);
+  const n = allObs.length;
+  let slope = 0, intercept = 0;
+  if (n > 1) {
+    const meanX = allObs.reduce((s, v) => s + v, 0) / n;
+    const meanY = allErrs.reduce((s, v) => s + v, 0) / n;
+    const num = allObs.reduce((s, v, k) => s + (v - meanX) * (allErrs[k] - meanY), 0);
+    const den = allObs.reduce((s, v)    => s + (v - meanX) ** 2, 0);
+    if (den !== 0) { slope = num / den; intercept = meanY - slope * meanX; }
+  }
+  const xMin = Math.min(...allObs);
+  const xMax = Math.max(...allObs);
+  const trendTrace = {
+    type: "scatter", mode: "lines",
+    name: `Trend (slope ${slope >= 0 ? "+" : ""}${slope.toFixed(3)})`,
+    x: [xMin, xMax],
+    y: [slope * xMin + intercept, slope * xMax + intercept],
+    line: { color: "#333", width: 2, dash: "dash" },
+    hoverinfo: "skip", showlegend: true,
+  };
+
+  const errPad = (Math.max(...allErrs.map(Math.abs)) || 1) * 0.08;
+  const obsPad = (xMax - xMin) * 0.03;
+
+  const layout = {
+    xaxis: { title: `Observed${unitLbl}`, showgrid: true, gridcolor: "#eee",
+             range: [xMin - obsPad, xMax + obsPad] },
+    yaxis: { title: `Error (model\u2212obs)${unitLbl}`,
+             zeroline: true, zerolinecolor: "#888", zerolinewidth: 1.5,
+             showgrid: true, gridcolor: "#eee",
+             range: [Math.min(...allErrs) - errPad, Math.max(...allErrs) + errPad] },
+    legend: { orientation: "h", y: -0.22, font: { size: 11 } },
+    hovermode: "closest",
+    plot_bgcolor: "#f8fbfc",
+    paper_bgcolor: "#ffffff",
+    margin: { t: 20, r: 25, b: 70, l: 70 },
+    height: 420,
+    shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1,
+               yref: "y", y0: 0, y1: 0,
+               line: { color: "#888", width: 1, dash: "dot" } }],
+  };
+
+  Plotly.newPlot("errvsobs-plot", [...traceMap.values(), trendTrace], layout,
     { responsive: true, displaylogo: false });
 }
 
