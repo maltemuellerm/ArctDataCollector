@@ -212,13 +212,14 @@ function _renderMetricsChart(buckets, varMeta) {
     yaxis: {
       title: `Error${unitLbl}`,
       side: "left",
-      autorange: true,
+      range: [-5, 5],
       showgrid: true, gridcolor: "#eee",
     },
     yaxis2: {
       title: `BIAS${unitLbl}`,
       side: "right",
       overlaying: "y",
+      range: [-5, 5],
       zeroline: true, zerolinecolor: "#ccc", zerolinewidth: 1.5,
       showgrid: false,
     },
