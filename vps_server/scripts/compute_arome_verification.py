@@ -417,11 +417,11 @@ def _build_timeseries(all_pairs: list[dict]) -> dict:
 def _compute_verification(all_pairs: list[dict]) -> dict:
     """Aggregate pairs into stats + scatter data per (source, variable)."""
 
-    # Group pairs: pairs_by[source][variable] = list of (obs, model, lead_h, lat, lon)
+    # Group pairs: pairs_by[source][variable] = list of (obs, model, lead_h, lat, lon, time)
     pairs_by: dict[str, dict[str, list[tuple]]] = defaultdict(lambda: defaultdict(list))
     for p in all_pairs:
         pairs_by[p["source"]][p["variable"]].append(
-            (p["obs"], p["model"], p["lead_h"], p.get("lat"), p.get("lon")))
+            (p["obs"], p["model"], p["lead_h"], p.get("lat"), p.get("lon"), p.get("time")))
 
     stats_out: dict[str, dict] = {}
     scatter_out: dict[str, dict] = {}
@@ -466,6 +466,7 @@ def _compute_verification(all_pairs: list[dict]) -> dict:
                 "lead":  [round(t[2], 2) for t in triplets],
                 "lat":   [t[3] for t in triplets],
                 "lon":   [t[4] for t in triplets],
+                "time":  [t[5] for t in triplets],
             }
 
     return {"stats": stats_out, "scatter": scatter_out, "timeseries": _build_timeseries(all_pairs)}

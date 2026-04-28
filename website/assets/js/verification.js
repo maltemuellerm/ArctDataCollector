@@ -364,7 +364,6 @@ const _VARIO_WINDOWS = [
 ];
 // Distance bin edges in km
 const _VARIO_BINS = [0, 50, 100, 150, 200, 300, 400, 500, 750, 1000, 1500, 2000];
-const _VARIO_MAX_PTS = 700;  // subsample cap per window per model
 
 function _haversineKm(lat1, lon1, lat2, lon2) {
   const R     = 6371;
@@ -408,6 +407,102 @@ function _computeSemiVariogram(lats, lons, vals) {
   return result;
 }
 
+// Group pairs by valid time, compute variogram within each snapshot, merge bins
+function _computeSemiVariogramTimeSynced(sc, idxs) {
+  // Group by valid time (truncate to hour)
+  const byTime = new Map();
+  for (const k of idxs) {
+    const t = (sc.time && sc.time[k]) ? sc.time[k].slice(0, 13) : null;
+    if (!t) continue;
+    if (!byTime.has(t)) byTime.set(t, []);
+    byTime.get(t).push(k);
+  }
+
+  const nBins   = _VARIO_BINS.length - 1;
+  const sums    = new Float64Array(nBins);
+  const counts  = new Int32Array(nBins);
+  const maxDist = _VARIO_BINS[nBins];
+
+  for (const idxGroup of byTime.values()) {
+    // Subsample each snapshot to avoid O(n²) blow-up
+    const step    = Math.max(1, Math.ceil(idxGroup.length / 80));
+    const sampled = idxGroup.filter((_, i) => i % step === 0);
+    const n       = sampled.length;
+    for (let i = 0; i < n - 1; i++) {
+      const ki = sampled[i];
+      for (let j = i + 1; j < n; j++) {
+        const kj = sampled[j];
+        const d = _haversineKm(sc.lat[ki], sc.lon[ki], sc.lat[kj], sc.lon[kj]);
+        if (d > maxDist) continue;
+        for (let b = 0; b < nBins; b++) {
+          if (d >= _VARIO_BINS[b] && d < _VARIO_BINS[b + 1]) {
+            // Use whichever field array is passed via closure — handled by caller
+            sums[b]   += 0;   // placeholder; see caller
+            counts[b] += 0;
+            break;
+          }
+        }
+      }
+    }
+  }
+  // Return the raw structures so caller can fill values
+  return { byTime, nBins, maxDist };
+}
+
+// Compute time-synced variogram for either obs or model values
+function _variogramSynced(sc, idxs, getVal) {
+  const nBins   = _VARIO_BINS.length - 1;
+  const sums    = new Float64Array(nBins);
+  const counts  = new Int32Array(nBins);
+  const maxDist = _VARIO_BINS[nBins];
+
+  // Group by valid time (hour precision)
+  const byTime = new Map();
+  for (const k of idxs) {
+    const t = (sc.time && sc.time[k]) ? sc.time[k].slice(0, 13) : null;
+    if (!t) continue;
+    if (!byTime.has(t)) byTime.set(t, []);
+    byTime.get(t).push(k);
+  }
+  if (!byTime.size) return [];  // no time info available
+
+  for (const idxGroup of byTime.values()) {
+    const step    = Math.max(1, Math.ceil(idxGroup.length / 80));
+    const sampled = idxGroup.filter((_, i) => i % step === 0);
+    const n       = sampled.length;
+    for (let i = 0; i < n - 1; i++) {
+      const ki = sampled[i];
+      const vi = getVal(ki);
+      if (vi == null) continue;
+      for (let j = i + 1; j < n; j++) {
+        const kj = sampled[j];
+        const vj = getVal(kj);
+        if (vj == null) continue;
+        const d = _haversineKm(sc.lat[ki], sc.lon[ki], sc.lat[kj], sc.lon[kj]);
+        if (d > maxDist) continue;
+        const sv = 0.5 * (vi - vj) ** 2;
+        for (let b = 0; b < nBins; b++) {
+          if (d >= _VARIO_BINS[b] && d < _VARIO_BINS[b + 1]) {
+            sums[b] += sv; counts[b]++; break;
+          }
+        }
+      }
+    }
+  }
+
+  const result = [];
+  for (let b = 0; b < nBins; b++) {
+    if (counts[b] >= 5) {
+      result.push({
+        dist:  (_VARIO_BINS[b] + _VARIO_BINS[b + 1]) / 2,
+        gamma: sums[b] / counts[b],
+        n:     counts[b],
+      });
+    }
+  }
+  return result;
+}
+
 function _renderVariogram() {
   const card    = document.getElementById("variogram-card");
   const varMeta = _varMeta();
@@ -435,18 +530,12 @@ function _renderVariogram() {
       }
       if (!idxs.length) continue;
 
-      // Subsample evenly to avoid O(n²) blow-up
-      const step    = Math.max(1, Math.ceil(idxs.length / _VARIO_MAX_PTS));
-      const sampled = idxs.filter((_, i) => i % step === 0).slice(0, _VARIO_MAX_PTS);
+      // Use time-synced variogram: pairs only within the same valid-time snapshot
+      // This prevents temporal variability from inflating the semivariogram.
 
-      const lats      = sampled.map((k) => sc.lat[k]);
-      const lons      = sampled.map((k) => sc.lon[k]);
-      const modelVals = sampled.map((k) => sc.model[k]);
-      const obsVals   = sampled.map((k) => sc.obs[k]);
-
-      // Observations reference variogram — drawn once from the first available model
+      // Observations reference — drawn once from first available model
       if (!obsAdded) {
-        const vObs = _computeSemiVariogram(lats, lons, obsVals);
+        const vObs = _variogramSynced(sc, idxs, (k) => sc.obs[k]);
         if (vObs.length) {
           traces.push({
             x: vObs.map((p) => p.dist),
@@ -464,7 +553,7 @@ function _renderVariogram() {
       }
 
       // Model variogram
-      const vMod = _computeSemiVariogram(lats, lons, modelVals);
+      const vMod = _variogramSynced(sc, idxs, (k) => sc.model[k]);
       if (vMod.length) {
         const { color } = MODEL_STYLE[m.key];
         traces.push({
@@ -492,7 +581,7 @@ function _renderVariogram() {
       legend: { orientation: "h", y: -0.30, font: { size: 11 } },
       plot_bgcolor: "#f8fbfc", paper_bgcolor: "#ffffff",
       hovermode: "x unified",
-      margin: { t: 40, r: 20, b: 90, l: 72 }, height: 320,
+      margin: { t: 40, r: 20, b: 90, l: 72 }, height: 300,
     }, { responsive: true, displaylogo: false });
   }
 
