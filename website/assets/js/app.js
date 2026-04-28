@@ -136,6 +136,7 @@ function selectItem(item) {
   else if (item.type === "arctsum" || item.type === "svalmiz") renderArctsumDetail(filtered);
   else if (item.type === "iabp")   renderIabpDetail(filtered);
   else                             renderThermistorDetail(filtered);
+  _renderModelForecast(item, filtered);
 }
 
 /* ── Rebuild all cards ────────────────────────────────── */
@@ -172,6 +173,101 @@ function rebuildCards(groups, tStart, tEnd) {
   }
 }
 
+/* ── NWP model forecast overlay ─────────────────────────── */
+
+const _VRF_URLS = {
+  arome: (IS_LOCAL ? "" : "http://148.230.70.161") + "/data/arome/verification.json",
+  ifs:   (IS_LOCAL ? "" : "http://148.230.70.161") + "/data/ecmwf/verification_ifs.json",
+  aifs:  (IS_LOCAL ? "" : "http://148.230.70.161") + "/data/ecmwf/verification_aifs.json",
+};
+const _vrf = {};
+let   _vrfLoadStarted = false;
+
+async function _loadVrfData() {
+  if (_vrfLoadStarted) return;
+  _vrfLoadStarted = true;
+  await Promise.allSettled(Object.entries(_VRF_URLS).map(async ([key, url]) => {
+    try {
+      const resp = await fetch(url);
+      if (resp.ok) _vrf[key] = await resp.json();
+    } catch (e) { /* VRF unavailable – model overlays won't show */ }
+  }));
+}
+
+const _VRF_MODEL_CFG = [
+  { key: "arome", label: "AROME",    color: "#2e5fa3" },
+  { key: "ifs",   label: "IFS HRES", color: "#c44b27" },
+  { key: "aifs",  label: "AIFS",     color: "#2dab6f" },
+];
+
+async function _renderModelForecast(item, filtered) {
+  // Create container once, inserted after #plot-container
+  let container = document.getElementById("model-forecast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "model-forecast-container";
+    document.getElementById("plot-container").after(container);
+  }
+  container.style.cssText = "display:none;border-top:1px solid #d0dde6;margin-top:.5rem";
+
+  if (!_vrfLoadStarted) _loadVrfData();
+
+  // Wait up to 6 s for at least one model to load
+  let waited = 0;
+  while (!Object.keys(_vrf).length && waited < 6000) {
+    await new Promise(r => setTimeout(r, 400));
+    waited += 400;
+  }
+  if (!Object.keys(_vrf).length) return;
+
+  const source  = item.type === "ship" ? "ships" : item.type;
+  const instrId = item.deploymentId || item.id;
+  const tS10    = (filtered._tStart || "").slice(0, 10);
+  const tE10    = (filtered._tEnd   || "").slice(0, 10);
+
+  const traces = [];
+
+  // Observation air_temp as grey reference dots
+  const obsDates = filtered.rows.map(r => r[filtered.tsField]);
+  const obsVals  = filtered.rows.map(r => { const v = parseFloat(r["air_temp"]); return isNaN(v) ? null : v; });
+  if (obsVals.some(v => v !== null)) {
+    traces.push({ x: obsDates, y: obsVals, name: "Obs",
+      mode: "markers", marker: { color: "#555", size: 4, opacity: 0.65 } });
+  }
+
+  // One coloured line per model — 0–24 h stitched forecast
+  for (const { key, label, color } of _VRF_MODEL_CFG) {
+    const ts = _vrf[key] && _vrf[key].timeseries &&
+               _vrf[key].timeseries[source] &&
+               _vrf[key].timeseries[source].air_temp &&
+               _vrf[key].timeseries[source].air_temp[instrId];
+    if (!ts) continue;
+    const times = [], vals = [];
+    for (let i = 0; i < ts.t.length; i++) {
+      const d = ts.t[i].slice(0, 10);
+      if ((!tS10 || d >= tS10) && (!tE10 || d <= tE10)) { times.push(ts.t[i]); vals.push(ts.m[i]); }
+    }
+    if (!times.length) continue;
+    traces.push({ x: times, y: vals, name: label, mode: "lines",
+      line: { color: color, width: 1.8 } });
+  }
+
+  if (traces.length < 2) return;  // need at least obs + 1 model line
+
+  container.style.cssText = "border-top:1px solid #d0dde6;margin-top:.5rem";
+  Plotly.newPlot(container, traces, {
+    title: { text: "Air temperature \u2014 model forecast (0\u201324 h, stitched)",
+             font: { size: 12 }, x: 0.02, xanchor: "left" },
+    xaxis: { title: "Date (UTC)", showgrid: true, gridcolor: "#eee" },
+    yaxis: { title: "Air temp (\u00b0C)", showgrid: true, gridcolor: "#eee", zeroline: false },
+    legend: { orientation: "h", y: -0.3, font: { size: 11 } },
+    plot_bgcolor: "#f8fbfc", paper_bgcolor: "#ffffff",
+    margin: { t: 35, r: 20, b: 85, l: 65 },
+    height: 270,
+    hovermode: "x unified",
+  }, { responsive: true, displaylogo: false });
+}
+
 /* ── Init ─────────────────────────────────────────────── */
 
 async function init() {
@@ -190,6 +286,7 @@ async function init() {
   const allItems = [...ships, ...buoys, ...thermistors, ...arctsum, ...svalmiz, ...iabp];
   if (!allItems.length) { statusEl.textContent = "No data available."; return; }
   statusEl.style.display = "none";
+  _loadVrfData();  // pre-load verification data in background
 
   // ── Compute global time extent (all items) ─────────────────────────────
   let globalMin = "9999", globalMax = "0000";

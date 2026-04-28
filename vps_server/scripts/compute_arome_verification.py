@@ -344,6 +344,7 @@ def _process_run(run_time: datetime,
                     "lead_h":     round(lead_h, 2),
                     "lat":        round(obs["lat"], 3),
                     "lon":        round(obs["lon"], 3),
+                    "time":       obs["time"].strftime("%Y-%m-%dT%H:%M"),
                 })
     finally:
         nc.close()
@@ -382,6 +383,35 @@ def _gross_error_filter(triplets: list[tuple]) -> tuple[list[tuple], int]:
     keep = np.abs(errors - mu) <= _GROSS_ERROR_SIGMA * sig
     filtered = [t for t, k in zip(triplets, keep) if k]
     return filtered, len(triplets) - len(filtered)
+
+
+def _build_timeseries(all_pairs: list[dict]) -> dict:
+    """Build per-instrument 0–24 h stitched forecast timeseries, averaged across runs."""
+    ts_raw: dict = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+    for p in all_pairs:
+        if p.get("lead_h", 999) > 24:
+            continue
+        t = p.get("time")
+        if not t:
+            continue
+        ts_raw[p["source"]][p["variable"]][p.get("instrument", "")].append((t, p["model"]))
+    ts_out: dict = {}
+    for src, var_dict in ts_raw.items():
+        ts_out[src] = {}
+        for var, inst_dict in var_dict.items():
+            ts_out[src][var] = {}
+            for inst, pts in inst_dict.items():
+                if not inst:
+                    continue
+                by_time: dict = defaultdict(list)
+                for t, m in pts:
+                    by_time[t].append(m)
+                times = sorted(by_time)
+                ts_out[src][var][inst] = {
+                    "t": times,
+                    "m": [round(sum(by_time[t]) / len(by_time[t]), 4) for t in times],
+                }
+    return ts_out
 
 
 def _compute_verification(all_pairs: list[dict]) -> dict:
@@ -438,7 +468,7 @@ def _compute_verification(all_pairs: list[dict]) -> dict:
                 "lon":   [t[4] for t in triplets],
             }
 
-    return {"stats": stats_out, "scatter": scatter_out}
+    return {"stats": stats_out, "scatter": scatter_out, "timeseries": _build_timeseries(all_pairs)}
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
@@ -519,6 +549,11 @@ def main() -> None:
                     )
                     # Invalidate if coverage is poor AND obs can now do better
                     if cache_max_lead >= _MAX_LEAD_H - 12 or not obs_covers_run:
+                        # Reconstruct "time" from filename + lead_h for legacy cached pairs
+                        _rdt = datetime.strptime(cache_file.stem, "%Y%m%d_%H").replace(tzinfo=timezone.utc)
+                        for _p in data:
+                            if "time" not in _p:
+                                _p["time"] = (_rdt + timedelta(hours=_p["lead_h"])).strftime("%Y-%m-%dT%H:%M")
                         all_pairs.extend(data)
                         logger.debug("Loaded %d cached pairs from %s",
                                      len(data), cache_file.name)
@@ -583,6 +618,7 @@ def main() -> None:
         "domain":     _domain_boundary(lat2d, lon2d) if lat2d is not None else [],
         "stats":      result["stats"],
         "scatter":    result["scatter"],
+        "timeseries": result.get("timeseries", {}),
     }
 
     out_file = out_dir / "verification.json"

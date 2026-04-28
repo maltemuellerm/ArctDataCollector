@@ -412,6 +412,7 @@ def _process_run_nc(nc_path: Path,
                     "lead_h":     round(lead_h, 2),
                     "lat":        round(obs["lat"], 3),
                     "lon":        round(obs["lon"], 3),
+                    "time":       obs["time"].strftime("%Y-%m-%dT%H:%M"),
                 })
     finally:
         nc.close()
@@ -447,6 +448,35 @@ def _gross_error_filter(triplets: list[tuple]) -> tuple[list[tuple], int]:
     keep     = np.abs(errors - mu) <= _GROSS_ERROR_SIGMA * sig
     filtered = [t for t, k in zip(triplets, keep) if k]
     return filtered, len(triplets) - len(filtered)
+
+
+def _build_timeseries(all_pairs: list[dict]) -> dict:
+    """Build per-instrument 0–24 h stitched forecast timeseries, averaged across runs."""
+    ts_raw: dict = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+    for p in all_pairs:
+        if p.get("lead_h", 999) > 24:
+            continue
+        t = p.get("time")
+        if not t:
+            continue
+        ts_raw[p["source"]][p["variable"]][p.get("instrument", "")].append((t, p["model"]))
+    ts_out: dict = {}
+    for src, var_dict in ts_raw.items():
+        ts_out[src] = {}
+        for var, inst_dict in var_dict.items():
+            ts_out[src][var] = {}
+            for inst, pts in inst_dict.items():
+                if not inst:
+                    continue
+                by_time: dict = defaultdict(list)
+                for t, m in pts:
+                    by_time[t].append(m)
+                times = sorted(by_time)
+                ts_out[src][var][inst] = {
+                    "t": times,
+                    "m": [round(sum(by_time[t]) / len(by_time[t]), 4) for t in times],
+                }
+    return ts_out
 
 
 def _compute_verification(all_pairs: list[dict], max_lead_h: int) -> dict:
@@ -510,12 +540,13 @@ def _compute_verification(all_pairs: list[dict], max_lead_h: int) -> dict:
             }
 
     return {
-        "stats":   stats_out,
-        "scatter": scatter_out,
-        "groupings": {
+        "stats":      stats_out,
+        "scatter":    scatter_out,
+        "groupings":  {
             k: [{"lo": lo, "hi": hi, "label": lbl} for lo, hi, lbl in v]
             for k, v in groupings.items()
         },
+        "timeseries": _build_timeseries(all_pairs),
     }
 
 
@@ -556,6 +587,11 @@ def _run_model(
                     data = json.loads(cache_file.read_text(encoding="utf-8"))
                     cache_max_lead = max((p["lead_h"] for p in data), default=0)
                     if cache_max_lead >= max_lead_h - 12 or not obs_covers_run:
+                        # Reconstruct "time" from filename + lead_h for legacy cached pairs
+                        _rdt = datetime.strptime(cache_file.stem, "%Y%m%d_%H").replace(tzinfo=timezone.utc)
+                        for _p in data:
+                            if "time" not in _p:
+                                _p["time"] = (_rdt + timedelta(hours=_p["lead_h"])).strftime("%Y-%m-%dT%H:%M")
                         all_pairs.extend(data)
                         logger.debug(
                             "Loaded %d cached pairs from %s",
@@ -638,8 +674,9 @@ def _run_model(
             [90.0, -180.0], [90.0, 180.0],
             [60.0,  180.0], [60.0, -180.0],
         ],
-        "stats":   result["stats"],
-        "scatter": result["scatter"],
+        "stats":      result["stats"],
+        "scatter":    result["scatter"],
+        "timeseries": result.get("timeseries", {}),
     }
 
     out_file = out_dir / f"verification_{model_name}.json"
