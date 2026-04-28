@@ -414,14 +414,86 @@ def _build_timeseries(all_pairs: list[dict]) -> dict:
     return ts_out
 
 
+def _compute_variogram(all_pairs: list[dict]) -> dict:
+    """Pre-compute spatial semivariogram per source/variable/lead-window.
+
+    Pairs observations only within the *same valid-time snapshot* (same hour)
+    to avoid temporal variability contaminating the spatial signal.
+    Returns {source: {var: {window_key: {"obs": [...], "model": [...]}}}}
+    where each list element is {"d": dist_km, "g": semivariance, "n": n_pairs}.
+    """
+    _VARIO_BINS_PY   = [0, 50, 100, 150, 200, 300, 400, 500, 750, 1000, 1500, 2000]
+    _VARIO_WINDOWS_PY = [("0-12h", 0, 12), ("48-60h", 48, 60)]
+    n_bins  = len(_VARIO_BINS_PY) - 1
+    max_d   = _VARIO_BINS_PY[-1]
+
+    def _hav_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+        r = 6371.0
+        dlat = math.radians(lat2 - lat1)
+        dlon = math.radians(lon2 - lon1)
+        a = (math.sin(dlat / 2) ** 2
+             + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2))
+             * math.sin(dlon / 2) ** 2)
+        return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    # grouped[source][var][window_key][valid_time_hour] = [(lat,lon,obs,model)]
+    grouped: dict = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(list))))
+
+    for p in all_pairs:
+        t   = p.get("time")
+        lat = p.get("lat")
+        lon = p.get("lon")
+        if not t or lat is None or lon is None:
+            continue
+        t_hour = t[:13]  # YYYY-MM-DDTHH
+        for wkey, wlo, whi in _VARIO_WINDOWS_PY:
+            if wlo <= p["lead_h"] < whi:
+                grouped[p["source"]][p["variable"]][wkey][t_hour].append(
+                    (lat, lon, p["obs"], p["model"]))
+
+    out: dict = {}
+    for src, vd in grouped.items():
+        out[src] = {}
+        for var, wd in vd.items():
+            out[src][var] = {}
+            for wkey, snaps in wd.items():
+                sums_o = [0.0] * n_bins
+                sums_m = [0.0] * n_bins
+                cnts   = [0]   * n_bins
+                for pts in snaps.values():
+                    step = max(1, len(pts) // 80)
+                    sp   = pts[::step]
+                    n    = len(sp)
+                    for i in range(n - 1):
+                        for j in range(i + 1, n):
+                            d = _hav_km(sp[i][0], sp[i][1], sp[j][0], sp[j][1])
+                            if d >= max_d:
+                                continue
+                            for b in range(n_bins):
+                                if _VARIO_BINS_PY[b] <= d < _VARIO_BINS_PY[b + 1]:
+                                    sums_o[b] += 0.5 * (sp[i][2] - sp[j][2]) ** 2
+                                    sums_m[b] += 0.5 * (sp[i][3] - sp[j][3]) ** 2
+                                    cnts[b]   += 1
+                                    break
+                dc = [(_VARIO_BINS_PY[b] + _VARIO_BINS_PY[b + 1]) / 2
+                      for b in range(n_bins)]
+                obs_pts   = [{"d": dc[b], "g": round(sums_o[b] / cnts[b], 4), "n": cnts[b]}
+                             for b in range(n_bins) if cnts[b] >= 5]
+                model_pts = [{"d": dc[b], "g": round(sums_m[b] / cnts[b], 4), "n": cnts[b]}
+                             for b in range(n_bins) if cnts[b] >= 5]
+                out[src][var][wkey] = {"obs": obs_pts, "model": model_pts}
+    return out
+
+
 def _compute_verification(all_pairs: list[dict]) -> dict:
     """Aggregate pairs into stats + scatter data per (source, variable)."""
 
-    # Group pairs: pairs_by[source][variable] = list of (obs, model, lead_h, lat, lon, time)
+    # Group pairs: pairs_by[source][variable] = list of (obs, model, lead_h, lat, lon)
     pairs_by: dict[str, dict[str, list[tuple]]] = defaultdict(lambda: defaultdict(list))
     for p in all_pairs:
         pairs_by[p["source"]][p["variable"]].append(
-            (p["obs"], p["model"], p["lead_h"], p.get("lat"), p.get("lon"), p.get("time")))
+            (p["obs"], p["model"], p["lead_h"], p.get("lat"), p.get("lon")))
 
     stats_out: dict[str, dict] = {}
     scatter_out: dict[str, dict] = {}
@@ -466,10 +538,11 @@ def _compute_verification(all_pairs: list[dict]) -> dict:
                 "lead":  [round(t[2], 2) for t in triplets],
                 "lat":   [t[3] for t in triplets],
                 "lon":   [t[4] for t in triplets],
-                "time":  [t[5] for t in triplets],
             }
 
-    return {"stats": stats_out, "scatter": scatter_out, "timeseries": _build_timeseries(all_pairs)}
+    return {"stats": stats_out, "scatter": scatter_out,
+            "timeseries": _build_timeseries(all_pairs),
+            "variogram":  _compute_variogram(all_pairs)}
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
@@ -620,6 +693,7 @@ def main() -> None:
         "stats":      result["stats"],
         "scatter":    result["scatter"],
         "timeseries": result.get("timeseries", {}),
+        "variogram":  result.get("variogram", {}),
     }
 
     out_file = out_dir / "verification.json"

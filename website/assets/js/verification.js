@@ -357,151 +357,10 @@ function _renderScatter() {
 }
 
 // ── Variogram ─────────────────────────────────────────────────────────────────
-// Lead-time windows (hard-coded as requested)
 const _VARIO_WINDOWS = [
-  { label: "Lead time 0\u201312 h",  lo: 0,  hi: 12 },
-  { label: "Lead time 48\u201360 h", lo: 48, hi: 60 },
+  { label: "Lead time 0\u201312 h",  key: "0-12h"  },
+  { label: "Lead time 48\u201360 h", key: "48-60h" },
 ];
-// Distance bin edges in km
-const _VARIO_BINS = [0, 50, 100, 150, 200, 300, 400, 500, 750, 1000, 1500, 2000];
-
-function _haversineKm(lat1, lon1, lat2, lon2) {
-  const R     = 6371;
-  const dLat  = (lat2 - lat1) * Math.PI / 180;
-  const dLon  = (lon2 - lon1) * Math.PI / 180;
-  const lat1r = lat1 * Math.PI / 180;
-  const lat2r = lat2 * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2
-          + Math.cos(lat1r) * Math.cos(lat2r) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function _computeSemiVariogram(lats, lons, vals) {
-  const nBins  = _VARIO_BINS.length - 1;
-  const sums   = new Float64Array(nBins);
-  const counts = new Int32Array(nBins);
-  const maxDist = _VARIO_BINS[nBins];
-  const n = lats.length;
-  for (let i = 0; i < n - 1; i++) {
-    for (let j = i + 1; j < n; j++) {
-      const d = _haversineKm(lats[i], lons[i], lats[j], lons[j]);
-      if (d > maxDist) continue;
-      const sv = 0.5 * (vals[i] - vals[j]) ** 2;
-      for (let b = 0; b < nBins; b++) {
-        if (d >= _VARIO_BINS[b] && d < _VARIO_BINS[b + 1]) {
-          sums[b] += sv; counts[b]++; break;
-        }
-      }
-    }
-  }
-  const result = [];
-  for (let b = 0; b < nBins; b++) {
-    if (counts[b] >= 5) {
-      result.push({
-        dist:  (_VARIO_BINS[b] + _VARIO_BINS[b + 1]) / 2,
-        gamma: sums[b] / counts[b],
-        n:     counts[b],
-      });
-    }
-  }
-  return result;
-}
-
-// Group pairs by valid time, compute variogram within each snapshot, merge bins
-function _computeSemiVariogramTimeSynced(sc, idxs) {
-  // Group by valid time (truncate to hour)
-  const byTime = new Map();
-  for (const k of idxs) {
-    const t = (sc.time && sc.time[k]) ? sc.time[k].slice(0, 13) : null;
-    if (!t) continue;
-    if (!byTime.has(t)) byTime.set(t, []);
-    byTime.get(t).push(k);
-  }
-
-  const nBins   = _VARIO_BINS.length - 1;
-  const sums    = new Float64Array(nBins);
-  const counts  = new Int32Array(nBins);
-  const maxDist = _VARIO_BINS[nBins];
-
-  for (const idxGroup of byTime.values()) {
-    // Subsample each snapshot to avoid O(n²) blow-up
-    const step    = Math.max(1, Math.ceil(idxGroup.length / 80));
-    const sampled = idxGroup.filter((_, i) => i % step === 0);
-    const n       = sampled.length;
-    for (let i = 0; i < n - 1; i++) {
-      const ki = sampled[i];
-      for (let j = i + 1; j < n; j++) {
-        const kj = sampled[j];
-        const d = _haversineKm(sc.lat[ki], sc.lon[ki], sc.lat[kj], sc.lon[kj]);
-        if (d > maxDist) continue;
-        for (let b = 0; b < nBins; b++) {
-          if (d >= _VARIO_BINS[b] && d < _VARIO_BINS[b + 1]) {
-            // Use whichever field array is passed via closure — handled by caller
-            sums[b]   += 0;   // placeholder; see caller
-            counts[b] += 0;
-            break;
-          }
-        }
-      }
-    }
-  }
-  // Return the raw structures so caller can fill values
-  return { byTime, nBins, maxDist };
-}
-
-// Compute time-synced variogram for either obs or model values
-function _variogramSynced(sc, idxs, getVal) {
-  const nBins   = _VARIO_BINS.length - 1;
-  const sums    = new Float64Array(nBins);
-  const counts  = new Int32Array(nBins);
-  const maxDist = _VARIO_BINS[nBins];
-
-  // Group by valid time (hour precision)
-  const byTime = new Map();
-  for (const k of idxs) {
-    const t = (sc.time && sc.time[k]) ? sc.time[k].slice(0, 13) : null;
-    if (!t) continue;
-    if (!byTime.has(t)) byTime.set(t, []);
-    byTime.get(t).push(k);
-  }
-  if (!byTime.size) return [];  // no time info available
-
-  for (const idxGroup of byTime.values()) {
-    const step    = Math.max(1, Math.ceil(idxGroup.length / 80));
-    const sampled = idxGroup.filter((_, i) => i % step === 0);
-    const n       = sampled.length;
-    for (let i = 0; i < n - 1; i++) {
-      const ki = sampled[i];
-      const vi = getVal(ki);
-      if (vi == null) continue;
-      for (let j = i + 1; j < n; j++) {
-        const kj = sampled[j];
-        const vj = getVal(kj);
-        if (vj == null) continue;
-        const d = _haversineKm(sc.lat[ki], sc.lon[ki], sc.lat[kj], sc.lon[kj]);
-        if (d > maxDist) continue;
-        const sv = 0.5 * (vi - vj) ** 2;
-        for (let b = 0; b < nBins; b++) {
-          if (d >= _VARIO_BINS[b] && d < _VARIO_BINS[b + 1]) {
-            sums[b] += sv; counts[b]++; break;
-          }
-        }
-      }
-    }
-  }
-
-  const result = [];
-  for (let b = 0; b < nBins; b++) {
-    if (counts[b] >= 5) {
-      result.push({
-        dist:  (_VARIO_BINS[b] + _VARIO_BINS[b + 1]) / 2,
-        gamma: sums[b] / counts[b],
-        n:     counts[b],
-      });
-    }
-  }
-  return result;
-}
 
 function _renderVariogram() {
   const card    = document.getElementById("variogram-card");
@@ -515,56 +374,40 @@ function _renderVariogram() {
     let obsAdded = false;
 
     for (const m of MODELS) {
-      const sc = _getScatter(m.key);
-      if (!sc || !sc.obs || !sc.lat) continue;
+      const d = _datasets[m.key];
+      if (!d) continue;
+      const vg = ((d.variogram || {})[_source] || {})[_var];
+      if (!vg) continue;
+      const wdata = vg[win.key];
+      if (!wdata) continue;
 
-      // Collect indices in this lead window with valid positions + values
-      const idxs = [];
-      for (let k = 0; k < sc.lead.length; k++) {
-        const lead = sc.lead[k];
-        if (lead >= win.lo && lead < win.hi
-            && sc.lat[k] != null && sc.lon[k] != null
-            && sc.obs[k] != null && sc.model[k] != null) {
-          idxs.push(k);
-        }
-      }
-      if (!idxs.length) continue;
-
-      // Use time-synced variogram: pairs only within the same valid-time snapshot
-      // This prevents temporal variability from inflating the semivariogram.
-
-      // Observations reference — drawn once from first available model
-      if (!obsAdded) {
-        const vObs = _variogramSynced(sc, idxs, (k) => sc.obs[k]);
-        if (vObs.length) {
-          traces.push({
-            x: vObs.map((p) => p.dist),
-            y: vObs.map((p) => p.gamma),
-            customdata: vObs.map((p) => p.n),
-            name: "Observations",
-            mode: "lines+markers",
-            line:   { color: "#444", width: 2.5, dash: "dash" },
-            marker: { color: "#444", size: 5 },
-            hovertemplate: "Obs<br>d=%{x:.0f} km, γ=%{y:.4f}<br>n=%{customdata}<extra></extra>",
-          });
-          obsAdded = true;
-          anyData  = true;
-        }
+      // Observation reference — drawn once from first available model
+      if (!obsAdded && wdata.obs && wdata.obs.length) {
+        traces.push({
+          x: wdata.obs.map((p) => p.d),
+          y: wdata.obs.map((p) => p.g),
+          customdata: wdata.obs.map((p) => p.n),
+          name: "Observations",
+          mode: "lines+markers",
+          line:   { color: "#444", width: 2.5, dash: "dash" },
+          marker: { color: "#444", size: 5 },
+          hovertemplate: "Obs<br>d=%{x:.0f} km, \u03b3=%{y:.4f}<br>n=%{customdata}<extra></extra>",
+        });
+        obsAdded = true;
+        anyData  = true;
       }
 
-      // Model variogram
-      const vMod = _variogramSynced(sc, idxs, (k) => sc.model[k]);
-      if (vMod.length) {
+      if (wdata.model && wdata.model.length) {
         const { color } = MODEL_STYLE[m.key];
         traces.push({
-          x: vMod.map((p) => p.dist),
-          y: vMod.map((p) => p.gamma),
-          customdata: vMod.map((p) => p.n),
-          name:   m.label,
-          mode:   "lines+markers",
+          x: wdata.model.map((p) => p.d),
+          y: wdata.model.map((p) => p.g),
+          customdata: wdata.model.map((p) => p.n),
+          name: m.label,
+          mode: "lines+markers",
           line:   { color, width: 2 },
           marker: { color, size: 5 },
-          hovertemplate: `${m.label}<br>d=%{x:.0f} km, γ=%{y:.4f}<br>n=%{customdata}<extra></extra>`,
+          hovertemplate: `${m.label}<br>d=%{x:.0f} km, \u03b3=%{y:.4f}<br>n=%{customdata}<extra></extra>`,
         });
         anyData = true;
       }
