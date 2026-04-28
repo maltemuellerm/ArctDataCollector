@@ -146,7 +146,7 @@ function _wireControls() {
     _lead = e.target.value;
     _renderMap();
     _renderScatter();
-    _renderErrorVsObs();
+    _renderVariogram();
   });
 
   // Map model toggle buttons
@@ -159,14 +159,10 @@ function _wireControls() {
     _renderMap();
   });
 
-  // Scatter / errvsobs model checkboxes
+  // Scatter model checkboxes
   ["chk-arome","chk-ifs","chk-aifs"].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.addEventListener("change", () => _renderScatter());
-  });
-  ["chk-arome-e","chk-ifs-e","chk-aifs-e"].forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener("change", () => _renderErrorVsObs());
   });
 
   _populateVarSel();
@@ -189,7 +185,7 @@ function _render() {
   _updateMapLeadSel();
   _renderMap();
   _renderScatter();
-  _renderErrorVsObs();
+  _renderVariogram();
 }
 
 function _getBuckets(modelKey) {
@@ -360,91 +356,147 @@ function _renderScatter() {
   }, { responsive: true, displaylogo: false });
 }
 
-// ── Error vs. observed ────────────────────────────────────────────────────────
-function _renderErrorVsObs() {
-  const card    = document.getElementById("errvsobs-card");
-  const varMeta = _varMeta();
-  const unitLbl = varMeta.units ? ` (${varMeta.units})` : "";
+// ── Variogram ─────────────────────────────────────────────────────────────────
+// Lead-time windows (hard-coded as requested)
+const _VARIO_WINDOWS = [
+  { label: "Lead time 0\u201312 h",  lo: 0,  hi: 12 },
+  { label: "Lead time 48\u201360 h", lo: 48, hi: 60 },
+];
+// Distance bin edges in km
+const _VARIO_BINS = [0, 50, 100, 150, 200, 300, 400, 500, 750, 1000, 1500, 2000];
+const _VARIO_MAX_PTS = 700;  // subsample cap per window per model
 
-  const activeModels = MODELS.filter((m) => {
-    const chk = document.getElementById(`chk-${m.key}-e`);
-    return chk && chk.checked && _getScatter(m.key);
-  });
+function _haversineKm(lat1, lon1, lat2, lon2) {
+  const R     = 6371;
+  const dLat  = (lat2 - lat1) * Math.PI / 180;
+  const dLon  = (lon2 - lon1) * Math.PI / 180;
+  const lat1r = lat1 * Math.PI / 180;
+  const lat2r = lat2 * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2
+          + Math.cos(lat1r) * Math.cos(lat2r) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
-  if (!activeModels.length) { card.style.display = "none"; return; }
-  card.style.display = "";
-
-  const buckets      = (_refData().groupings || {})[_scatterGrp] || [];
-  const activeBucket = _lead === "all"
-    ? null : buckets.find((b) => b.label === _lead);
-
-  const traces = [];
-  const allObs = [], allErrs = [];
-
-  for (const m of activeModels) {
-    const sc = _getScatter(m.key);
-    if (!sc || !sc.obs) continue;
-    const { color } = MODEL_STYLE[m.key];
-
-    const obs = [], errs = [];
-    sc.obs.forEach((o, k) => {
-      const lead = sc.lead[k];
-      if (activeBucket && !(lead >= activeBucket.lo && lead < activeBucket.hi)) return;
-      obs.push(o); errs.push(+(sc.model[k] - o).toFixed(4));
-    });
-    if (!obs.length) continue;
-    allObs.push(...obs); allErrs.push(...errs);
-
-    traces.push({
-      type: "scattergl", mode: "markers", name: m.label,
-      legendgroup: m.key, showlegend: true,
-      x: obs, y: errs,
-      marker: { color, size: 4, opacity: 0.45 },
-      hovertemplate:
-        `${m.label}<br>Obs: %{x:.2f} ${varMeta.units || ""}<br>Error: %{y:+.2f} ${varMeta.units || ""}<extra></extra>`,
-    });
-
-    // Trend line per model
-    const n     = obs.length;
-    const meanX = obs.reduce((s, v) => s + v, 0) / n;
-    const meanY = errs.reduce((s, v) => s + v, 0) / n;
-    const num   = obs.reduce((s, v, k) => s + (v - meanX) * (errs[k] - meanY), 0);
-    const den   = obs.reduce((s, v)    => s + (v - meanX) ** 2, 0);
-    if (den !== 0) {
-      const slope = num / den;
-      const ic    = meanY - slope * meanX;
-      const xMin  = Math.min(...obs), xMax = Math.max(...obs);
-      traces.push({
-        type: "scatter", mode: "lines",
-        name: `${m.label} trend (${slope >= 0 ? "+" : ""}${slope.toFixed(3)})`,
-        legendgroup: m.key, showlegend: false,
-        x: [xMin, xMax], y: [slope * xMin + ic, slope * xMax + ic],
-        line: { color, width: 2, dash: "dash" }, hoverinfo: "skip",
+function _computeSemiVariogram(lats, lons, vals) {
+  const nBins  = _VARIO_BINS.length - 1;
+  const sums   = new Float64Array(nBins);
+  const counts = new Int32Array(nBins);
+  const maxDist = _VARIO_BINS[nBins];
+  const n = lats.length;
+  for (let i = 0; i < n - 1; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const d = _haversineKm(lats[i], lons[i], lats[j], lons[j]);
+      if (d > maxDist) continue;
+      const sv = 0.5 * (vals[i] - vals[j]) ** 2;
+      for (let b = 0; b < nBins; b++) {
+        if (d >= _VARIO_BINS[b] && d < _VARIO_BINS[b + 1]) {
+          sums[b] += sv; counts[b]++; break;
+        }
+      }
+    }
+  }
+  const result = [];
+  for (let b = 0; b < nBins; b++) {
+    if (counts[b] >= 5) {
+      result.push({
+        dist:  (_VARIO_BINS[b] + _VARIO_BINS[b + 1]) / 2,
+        gamma: sums[b] / counts[b],
+        n:     counts[b],
       });
     }
   }
+  return result;
+}
 
-  if (!traces.length) { card.style.display = "none"; return; }
+function _renderVariogram() {
+  const card    = document.getElementById("variogram-card");
+  const varMeta = _varMeta();
+  let anyData   = false;
 
-  const errPad = (Math.max(...allErrs.map(Math.abs)) || 1) * 0.08;
-  const obsPad = ((Math.max(...allObs) - Math.min(...allObs)) || 1) * 0.03;
+  for (let w = 0; w < _VARIO_WINDOWS.length; w++) {
+    const win    = _VARIO_WINDOWS[w];
+    const plotEl = document.getElementById(`variogram-plot-${w}`);
+    const traces = [];
+    let obsAdded = false;
 
-  Plotly.newPlot("errvsobs-plot", traces, {
-    xaxis: { title: `Observed${unitLbl}`,
-             range: [Math.min(...allObs) - obsPad, Math.max(...allObs) + obsPad],
-             showgrid: true, gridcolor: "#eee" },
-    yaxis: { title: `Error (model\u2212obs)${unitLbl}`,
-             zeroline: true, zerolinecolor: "#888", zerolinewidth: 1.5,
-             showgrid: true, gridcolor: "#eee",
-             range: [Math.min(...allErrs) - errPad, Math.max(...allErrs) + errPad] },
-    legend: { orientation: "h", y: -0.22, font: { size: 11 } },
-    hovermode: "closest",
-    plot_bgcolor: "#f8fbfc", paper_bgcolor: "#ffffff",
-    margin: { t: 20, r: 25, b: 70, l: 70 }, height: 420,
-    shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1,
-               yref: "y", y0: 0, y1: 0,
-               line: { color: "#888", width: 1, dash: "dot" } }],
-  }, { responsive: true, displaylogo: false });
+    for (const m of MODELS) {
+      const sc = _getScatter(m.key);
+      if (!sc || !sc.obs || !sc.lat) continue;
+
+      // Collect indices in this lead window with valid positions + values
+      const idxs = [];
+      for (let k = 0; k < sc.lead.length; k++) {
+        const lead = sc.lead[k];
+        if (lead >= win.lo && lead < win.hi
+            && sc.lat[k] != null && sc.lon[k] != null
+            && sc.obs[k] != null && sc.model[k] != null) {
+          idxs.push(k);
+        }
+      }
+      if (!idxs.length) continue;
+
+      // Subsample evenly to avoid O(n²) blow-up
+      const step    = Math.max(1, Math.ceil(idxs.length / _VARIO_MAX_PTS));
+      const sampled = idxs.filter((_, i) => i % step === 0).slice(0, _VARIO_MAX_PTS);
+
+      const lats      = sampled.map((k) => sc.lat[k]);
+      const lons      = sampled.map((k) => sc.lon[k]);
+      const modelVals = sampled.map((k) => sc.model[k]);
+      const obsVals   = sampled.map((k) => sc.obs[k]);
+
+      // Observations reference variogram — drawn once from the first available model
+      if (!obsAdded) {
+        const vObs = _computeSemiVariogram(lats, lons, obsVals);
+        if (vObs.length) {
+          traces.push({
+            x: vObs.map((p) => p.dist),
+            y: vObs.map((p) => p.gamma),
+            customdata: vObs.map((p) => p.n),
+            name: "Observations",
+            mode: "lines+markers",
+            line:   { color: "#444", width: 2.5, dash: "dash" },
+            marker: { color: "#444", size: 5 },
+            hovertemplate: "Obs<br>d=%{x:.0f} km, γ=%{y:.4f}<br>n=%{customdata}<extra></extra>",
+          });
+          obsAdded = true;
+          anyData  = true;
+        }
+      }
+
+      // Model variogram
+      const vMod = _computeSemiVariogram(lats, lons, modelVals);
+      if (vMod.length) {
+        const { color } = MODEL_STYLE[m.key];
+        traces.push({
+          x: vMod.map((p) => p.dist),
+          y: vMod.map((p) => p.gamma),
+          customdata: vMod.map((p) => p.n),
+          name:   m.label,
+          mode:   "lines+markers",
+          line:   { color, width: 2 },
+          marker: { color, size: 5 },
+          hovertemplate: `${m.label}<br>d=%{x:.0f} km, γ=%{y:.4f}<br>n=%{customdata}<extra></extra>`,
+        });
+        anyData = true;
+      }
+    }
+
+    if (!traces.length) { Plotly.purge(plotEl); continue; }
+
+    const unitsSq = varMeta.units ? `${varMeta.units}\u00b2` : "";
+    Plotly.newPlot(plotEl, traces, {
+      title:  { text: win.label, font: { size: 13 }, x: 0.5, xanchor: "center" },
+      xaxis:  { title: "Distance (km)", showgrid: true, gridcolor: "#eee" },
+      yaxis:  { title: `Semivariance (${unitsSq})`,
+                showgrid: true, gridcolor: "#eee", rangemode: "tozero" },
+      legend: { orientation: "h", y: -0.30, font: { size: 11 } },
+      plot_bgcolor: "#f8fbfc", paper_bgcolor: "#ffffff",
+      hovermode: "x unified",
+      margin: { t: 40, r: 20, b: 90, l: 72 }, height: 320,
+    }, { responsive: true, displaylogo: false });
+  }
+
+  card.style.display = anyData ? "" : "none";
 }
 
 // ── Map ───────────────────────────────────────────────────────────────────────
@@ -464,10 +516,36 @@ function _updateMapLeadSel() {
 
 function _initMap() {
   if (_map) return;
-  _map = L.map("obs-map", { center: [78, 15], zoom: 3 });
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "\u00a9 <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors",
-    maxZoom: 10,
+
+  // EPSG:3996 — Arctic polar stereographic (same as main map)
+  const crs = new L.Proj.CRS(
+    "EPSG:3996",
+    "+proj=stere +lat_0=90 +lat_ts=75 +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +type=crs",
+    {
+      origin: [-3333793.82, 3368075.98],
+      resolutions: [8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1],
+      bounds: L.bounds([-3333793.82, -3368075.98], [3333793.82, 3368075.98]),
+    }
+  );
+
+  _map = L.map("obs-map", {
+    crs,
+    center: [85, 30],
+    zoom: 2,
+    minZoom: 0,
+    maxZoom: 7,
+    zoomControl: true,
+  });
+
+  // GEBCO North Polar bathymetry WMS
+  L.tileLayer.wms("https://wms.gebco.net/north-polar/mapserv?", {
+    layers: "GEBCO_NORTH_POLAR_VIEW",
+    format: "image/png",
+    transparent: false,
+    version: "1.3.0",
+    crs: crs,
+    noWrap: true,
+    attribution: "Bathymetry &copy; GEBCO",
   }).addTo(_map);
 }
 

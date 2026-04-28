@@ -85,6 +85,22 @@
   margin-bottom: .3rem;
 }
 
+.vrf-card-subtitle {
+  font-size: .82rem;
+  color: var(--muted);
+  padding: 0 1.2rem .5rem;
+  margin: 0;
+}
+
+.vrf-variogram-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .25rem;
+}
+@media (max-width: 700px) {
+  .vrf-variogram-panels { grid-template-columns: 1fr; }
+}
+
 /* Plotly containers */
 .vrf-plot {
   width: 100%;
@@ -160,7 +176,9 @@
 
 .vrf-obs-map {
   width: 100%;
-  height: 380px;
+  max-width: 600px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
 }
 
 .vrf-map-legend {

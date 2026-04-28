@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="assets/css/verification.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js"></script>
+    <script src="https://unpkg.com/proj4leaflet@1.0.2/src/proj4leaflet.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   </head>
   <body>
@@ -90,30 +92,27 @@
         </section>
       </div>
 
-      <!-- Scatter + Error vs observed ─────────────────────────────────── -->
-      <div class="vrf-grid">
-        <section class="card" id="scatter-card" style="display:none">
-          <h2 class="vrf-card-title">Observation vs. model (scatter)</h2>
-          <div class="vrf-scatter-controls">
-            <span class="vrf-label">Models</span>
-            <label class="vrf-check-label"><input type="checkbox" id="chk-arome" checked> AROME</label>
-            <label class="vrf-check-label"><input type="checkbox" id="chk-ifs"   checked> IFS</label>
-            <label class="vrf-check-label"><input type="checkbox" id="chk-aifs"  checked> AIFS</label>
-          </div>
-          <div id="scatter-plot" class="vrf-plot vrf-scatter-plot"></div>
-        </section>
+      <!-- Scatter ──────────────────────────────────────────────────────── -->
+      <section class="card" id="scatter-card" style="display:none">
+        <h2 class="vrf-card-title">Observation vs. model (scatter)</h2>
+        <div class="vrf-scatter-controls">
+          <span class="vrf-label">Models</span>
+          <label class="vrf-check-label"><input type="checkbox" id="chk-arome" checked> AROME</label>
+          <label class="vrf-check-label"><input type="checkbox" id="chk-ifs"   checked> IFS</label>
+          <label class="vrf-check-label"><input type="checkbox" id="chk-aifs"  checked> AIFS</label>
+        </div>
+        <div id="scatter-plot" class="vrf-plot vrf-scatter-plot"></div>
+      </section>
 
-        <section class="card" id="errvsobs-card" style="display:none">
-          <h2 class="vrf-card-title">Error vs. observed value</h2>
-          <div class="vrf-scatter-controls">
-            <span class="vrf-label">Models</span>
-            <label class="vrf-check-label"><input type="checkbox" id="chk-arome-e" checked> AROME</label>
-            <label class="vrf-check-label"><input type="checkbox" id="chk-ifs-e"   checked> IFS</label>
-            <label class="vrf-check-label"><input type="checkbox" id="chk-aifs-e"  checked> AIFS</label>
-          </div>
-          <div id="errvsobs-plot" class="vrf-plot"></div>
-        </section>
-      </div>
+      <!-- Variogram ────────────────────────────────────────────────────── -->
+      <section class="card" id="variogram-card" style="display:none">
+        <h2 class="vrf-card-title">Spatial variogram — temperature variability vs. distance</h2>
+        <p class="vrf-card-subtitle">Empirical semivariogram γ(h) = ½·mean[(T<sub>i</sub>−T<sub>j</sub>)²] computed from all observation pairs in each lead-time window. Observations (dashed) are the reference.</p>
+        <div class="vrf-variogram-panels">
+          <div id="variogram-plot-0" class="vrf-plot"></div>
+          <div id="variogram-plot-1" class="vrf-plot"></div>
+        </div>
+      </section>
 
       <!-- About ────────────────────────────────────────────────────────── -->
       <section class="card vrf-about-card" id="about-card" style="display:none">
