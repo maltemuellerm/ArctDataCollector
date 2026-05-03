@@ -109,6 +109,33 @@ function renderMap(items, tStart, tEnd, onSelect) {
     const rows  = item.rows;
     const color = itemColor(item);
     const isShip = item.type === "ship";
+    const isFrostStation = ["svalbard", "north_norway", "offshore", "greenland", "canada",
+                            "alaska", "russia", "iceland", "finland", "sweden"].includes(item.type);
+
+    if (isFrostStation) {
+      const lat = item.latitude;
+      const lon = item.longitude;
+      if (isNaN(lat) || isNaN(lon)) return;
+      const latestTime = rows.length ? (rows[rows.length - 1].time || "") : "";
+      const sz = 10;
+      const crossIcon = L.divIcon({
+        className: "",
+        html: `<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" xmlns="http://www.w3.org/2000/svg">`
+            + `<line x1="2" y1="2" x2="${sz-2}" y2="${sz-2}" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>`
+            + `<line x1="${sz-2}" y1="2" x2="2" y2="${sz-2}" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>`
+            + `</svg>`,
+        iconSize: [sz, sz],
+        iconAnchor: [sz / 2, sz / 2],
+      });
+      const marker = L.marker([lat, lon], { icon: crossIcon });
+      marker.bindTooltip(
+        `<b>${item.name}</b><br>${item.id}<br>${latestTime}<br>${lat.toFixed(3)}°N ${lon.toFixed(3)}°E`,
+        { direction: "top", offset: [0, -8] }
+      );
+      marker.on("click", () => onSelect(item));
+      _layerGroup.addLayer(marker);
+      return;
+    }
 
     const coords = [];
     const times  = [];

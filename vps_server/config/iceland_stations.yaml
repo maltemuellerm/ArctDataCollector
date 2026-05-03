@@ -1,0 +1,35 @@
+# Icelandic weather stations via the Icelandic Meteorological Office (IMO) Weather API.
+# API docs: https://api.vedur.is/  (Swagger UI; endpoint: /weather/observations/aws/hour)
+# Station IDs are IMO AWS station numbers (verified via /weather/stations).
+
+stations:
+  - name: "Grímsey"
+    station_id: "3976"
+    latitude: 66.544
+    longitude: -18.017
+    active: true
+
+  - name: "Raufarhöfn"
+    station_id: "4828"
+    latitude: 66.459
+    longitude: -15.950
+    active: true
+
+  - name: "Akureyri"
+    station_id: "422"
+    latitude: 65.686
+    longitude: -18.100
+    active: true
+
+  - name: "Ólafsfjörður"
+    station_id: "3658"
+    latitude: 66.073
+    longitude: -18.674
+    active: true
+
+  - name: "Siglufjörður"
+    station_id: "3752"
+    latitude: 66.132
+    longitude: -18.918
+    active: true
+

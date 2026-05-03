@@ -1,0 +1,35 @@
+# MET Norway ocean / sea-ice buoys in the Barents Sea and Norwegian Sea.
+# These are fixed-position moored met-ocean buoys accessible via the Frost API.
+# Station IDs are SN-prefixed Frost source IDs.
+# Observations are fetched from CAMPAIGN_START = 2026-04-01 onward.
+
+stations:
+  - name: "Hopen met buoy"
+    station_id: "SN99722"
+    latitude: 76.510
+    longitude: 25.013
+    active: true
+
+  - name: "Barents Sea buoy (Fugløya–Bjørnøya)"
+    station_id: "SN76931"
+    latitude: 74.500
+    longitude: 19.000
+    active: true
+
+  - name: "Barents Sea buoy N"
+    station_id: "SN99754"
+    latitude: 76.500
+    longitude: 32.000
+    active: false  # verify coordinates before enabling
+
+  - name: "Norwegian Sea buoy W"
+    station_id: "SN66740"
+    latitude: 70.100
+    longitude: 1.000
+    active: true
+
+  - name: "Sleipner A"
+    station_id: "SN76928"
+    latitude: 58.367
+    longitude: 1.900
+    active: false  # south of domain

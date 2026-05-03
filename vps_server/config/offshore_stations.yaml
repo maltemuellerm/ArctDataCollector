@@ -1,0 +1,34 @@
+# Offshore platform observation sources via the MET Norway Frost API.
+# Platforms in the Barents Sea and Norwegian continental shelf.
+# Observations are fetched from CAMPAIGN_START = 2026-04-01 onward.
+
+stations:
+  - name: "Wisting"
+    station_id: "SN20925"
+    latitude: 73.500
+    longitude: 24.130
+    active: true
+
+  - name: "Hjelmsøybanken II"
+    station_id: "SN20924"
+    latitude: 72.502
+    longitude: 20.169
+    active: false  # HTTP 412 — station does not report met elements via Frost
+
+  - name: "Hjelmsøybanken"
+    station_id: "SN20926"
+    latitude: 72.490
+    longitude: 20.150
+    active: true
+
+  - name: "Johan Castberg"
+    station_id: "SN76909"
+    latitude: 72.484
+    longitude: 20.234
+    active: true
+
+  - name: "Goliat FPSO"
+    station_id: "SN76956"
+    latitude: 71.311
+    longitude: 22.250
+    active: true

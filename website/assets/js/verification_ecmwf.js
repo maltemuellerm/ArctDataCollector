@@ -14,8 +14,9 @@ const ECMWF_BASE = IS_LOCAL
   : "http://148.230.70.161/data/ecmwf";
 
 const MODEL_META = {
-  ifs:  { label: "IFS HRES",  shortLabel: "IFS",  steps: "hourly 0–72 h",   res: "0.25°" },
-  aifs: { label: "AIFS",      shortLabel: "AIFS", steps: "6-hourly 0–72 h", res: "0.25°" },
+  ifs:     { label: "IFS HRES",         shortLabel: "IFS",     steps: "hourly 0–72 h",   res: "0.1°" },
+  aifs:    { label: "AIFS",             shortLabel: "AIFS",    steps: "6-hourly 0–72 h", res: "0.1°" },
+  ifs_exp: { label: "IFS experimental", shortLabel: "IFS exp", steps: "hourly 0–72 h",   res: "0.1°" },
 };
 
 const GROUP_COLORS = [
@@ -25,13 +26,73 @@ const GROUP_COLORS = [
 ];
 
 const SOURCE_LABELS = {
-  ships:      "Ships",
-  simba:      "SIMBA buoys",
-  thermistor: "Thermistor buoys",
-  arctsum:    "ArctSum buoys",
-  svalmiz:    "SvalMIZ buoys",
-  iabp:       "IABP buoys",
+  _land_all:    "Land-based weather (all)",
+  _land_arome:  "Land-based weather (AROME Arctic domain)",
+  svalbard:     "Svalbard & Jan Mayen",
+  north_norway: "Northern Norway",
+  offshore:     "Offshore platforms",
+  greenland:    "Greenland (DMI)",
+  canada:       "Canada (ECCC)",
+  alaska:       "Alaska (NWS)",
+  russia:       "Russia / FJL / NZ",
+  iceland:      "Iceland (IMO)",
+  finland:      "Finland (FMI)",
+  sweden:       "Sweden (SMHI)",
+  norway_buoys: "MET Norway buoys",
+  ships:        "Ships",
+  simba:        "SIMBA buoys",
+  thermistor:   "Thermistor buoys",
+  arctsum:      "ArctSum buoys",
+  svalmiz:      "SvalMIZ buoys",
+  iabp:         "IABP buoys",
 };
+
+// Land sources for the aggregate options
+const _LAND_SOURCES_ALL = [
+  "svalbard", "north_norway", "offshore", "greenland", "canada",
+  "alaska", "russia", "iceland", "finland", "sweden",
+];
+const _LAND_SOURCES_AROME = [
+  "svalbard", "north_norway", "offshore", "greenland",
+  "iceland", "finland", "sweden",
+];
+
+// Fixed source dropdown (6 curated options)
+const _FIXED_SOURCES = ["_land_all", "_land_arome", "svalmiz", "arctsum", "ships", "iabp"];
+
+function _aggSources() {
+  if (_source === "_land_all")   return _LAND_SOURCES_ALL;
+  if (_source === "_land_arome") return _LAND_SOURCES_AROME;
+  return null;
+}
+
+// ── Aggregate helpers for "All weather stations" option ──────────────────
+function _mergeBuckets(allBuckets) {
+  if (!allBuckets.length) return null;
+  const nB = allBuckets[0].length;
+  return Array.from({ length: nB }, (_, i) => {
+    const label = allBuckets[0][i].label;
+    let totalN = 0, wBias = 0, wMAE = 0, wRMSE2 = 0;
+    for (const bkts of allBuckets) {
+      const b = bkts[i];
+      if (!b || b.n < 2 || b.rmse == null) continue;
+      totalN += b.n; wBias += b.n * b.bias; wMAE += b.n * b.mae; wRMSE2 += b.n * b.rmse * b.rmse;
+    }
+    if (totalN < 2) return { label, n: totalN, rmse: null, mae: null, bias: null };
+    return { label, n: totalN, bias: wBias / totalN, mae: wMAE / totalN, rmse: Math.sqrt(wRMSE2 / totalN) };
+  });
+}
+
+function _mergeScatter(scatters) {
+  const r = { obs: [], model: [], lead: [], lat: [], lon: [] };
+  for (const sc of scatters) {
+    if (!sc || !sc.obs) continue;
+    r.obs.push(...sc.obs); r.model.push(...sc.model); r.lead.push(...sc.lead);
+    r.lat.push(...(sc.lat || sc.obs.map(() => null)));
+    r.lon.push(...(sc.lon || sc.obs.map(() => null)));
+  }
+  return r.obs.length ? r : null;
+}
 
 // ── State ──────────────────────────────────────────────────────────────────────
 let _data   = null;
@@ -102,29 +163,36 @@ function _updateAbout() {
 function _populateSourceSel() {
   const sel = document.getElementById("src-sel");
   sel.innerHTML = "";
-  const sources = Object.keys(_data.stats || {});
-  sources.forEach((src) => {
+  _FIXED_SOURCES.forEach((src) => {
     const opt = document.createElement("option");
     opt.value = src;
     opt.textContent = SOURCE_LABELS[src] || src;
     sel.appendChild(opt);
   });
-  _source = sel.value || sources[0] || null;
+  sel.value = "_land_all";
+  _source = "_land_all";
 }
 
 function _populateVarSel() {
   const sel = document.getElementById("var-sel");
   sel.innerHTML = "";
-  if (!_source || !_data.stats[_source]) return;
-  const vars = Object.keys(_data.stats[_source]);
-  vars.forEach((v) => {
+  if (!_source) return;
+  const varSet = new Set();
+  const _agg = _aggSources();
+  if (_agg) {
+    _agg.forEach((src) => Object.keys((_data.stats || {})[src] || {}).forEach((v) => varSet.add(v)));
+  } else {
+    if (!_data.stats[_source]) return;
+    Object.keys(_data.stats[_source]).forEach((v) => varSet.add(v));
+  }
+  [...varSet].forEach((v) => {
     const opt = document.createElement("option");
     opt.value = v;
     const meta = (_data.variables || {})[v] || {};
     opt.textContent = `${meta.label || v} (${meta.units || ""})`;
     sel.appendChild(opt);
   });
-  _var = sel.value || vars[0] || null;
+  _var = sel.value || [...varSet][0] || null;
 }
 
 function _wireControls() {
@@ -155,13 +223,17 @@ function _wireControls() {
   });
   document.getElementById("map-metric-sel").addEventListener("change", (e) => {
     _mapMetric = e.target.value;
-    const scatter  = (_data.scatter[_source] || {})[_var];
+    const scatter  = _aggSources()
+      ? _mergeScatter(_aggSources().map((s) => (_data.scatter[s] || {})[_var]).filter(Boolean))
+      : (_data.scatter[_source] || {})[_var];
     const varMeta  = (_data.variables || {})[_var] || {};
     _renderMap(scatter, varMeta);
   });
   document.getElementById("lead-sel").addEventListener("change", (e) => {
     _lead = e.target.value;
-    const scatter = (_data.scatter[_source] || {})[_var];
+    const scatter = _aggSources()
+      ? _mergeScatter(_aggSources().map((s) => (_data.scatter[s] || {})[_var]).filter(Boolean))
+      : (_data.scatter[_source] || {})[_var];
     const varMeta = (_data.variables || {})[_var] || {};
     _renderMap(scatter, varMeta);
     _renderErrorVsObs(scatter, varMeta);
@@ -177,8 +249,17 @@ function _wireControls() {
 function _render() {
   if (!_source || !_var) return;
 
-  const statsForVar   = ((_data.stats[_source]   || {})[_var] || {})[_metricsGrp];
-  const scatterForVar = (_data.scatter[_source]  || {})[_var];
+  let statsForVar, scatterForVar;
+  const _agg = _aggSources();
+  if (_agg) {
+    const allBkts = _agg.map((src) => ((_data.stats[src] || {})[_var] || {})[_metricsGrp]).filter(Boolean);
+    statsForVar = allBkts.length ? _mergeBuckets(allBkts) : null;
+    const allScat = _agg.map((src) => (_data.scatter[src] || {})[_var]).filter(Boolean);
+    scatterForVar = allScat.length ? _mergeScatter(allScat) : null;
+  } else {
+    statsForVar   = ((_data.stats[_source]   || {})[_var] || {})[_metricsGrp];
+    scatterForVar = (_data.scatter[_source]  || {})[_var];
+  }
   const varMeta       = (_data.variables         || {})[_var] || {};
   const period        = _data.period || {};
 
@@ -309,7 +390,8 @@ function _renderScatter(scatter, varMeta) {
   });
 
   const allVals = [...obs, ...model].filter((v) => v != null);
-  const vMin = Math.min(...allVals), vMax = Math.max(...allVals);
+  let vMin = Infinity, vMax = -Infinity;
+  for (const v of allVals) { if (v < vMin) vMin = v; if (v > vMax) vMax = v; }
   const pad  = (vMax - vMin) * 0.05;
 
   const traces = [...traceMap.values(), {
@@ -394,7 +476,8 @@ function _renderErrorVsObs(scatter, varMeta) {
     const den = obs.reduce((s, v)    => s + (v - meanX) ** 2, 0);
     if (den !== 0) { slope = num / den; intercept = meanY - slope * meanX; }
   }
-  const xMin = Math.min(...obs), xMax = Math.max(...obs);
+  let xMin = Infinity, xMax = -Infinity;
+  for (const v of obs) { if (v < xMin) xMin = v; if (v > xMax) xMax = v; }
   traces.push({
     type: "scatter", mode: "lines",
     name: `Trend (slope ${slope >= 0 ? "+" : ""}${slope.toFixed(3)})`,
@@ -403,7 +486,8 @@ function _renderErrorVsObs(scatter, varMeta) {
     hoverinfo: "skip",
   });
 
-  const errPad = (Math.max(...allErrs.map(Math.abs)) || 1) * 0.08;
+  let _eAbsMax = 0; for (const e of allErrs) { const ae = Math.abs(e); if (ae > _eAbsMax) _eAbsMax = ae; }
+  const errPad = (_eAbsMax || 1) * 0.08;
   const obsPad = (xMax - xMin) * 0.03;
 
   Plotly.newPlot("errvsobs-plot", traces, {
@@ -412,7 +496,8 @@ function _renderErrorVsObs(scatter, varMeta) {
     yaxis: { title: `Error (model\u2212obs)${unitLbl}`,
              zeroline: true, zerolinecolor: "#888", zerolinewidth: 1.5,
              showgrid: true, gridcolor: "#eee",
-             range: [Math.min(...allErrs) - errPad, Math.max(...allErrs) + errPad] },
+             range: [allErrs.reduce((a, v) => v < a ? v : a, Infinity) - errPad,
+                     allErrs.reduce((a, v) => v > a ? v : a, -Infinity) + errPad] },
     legend: { orientation: "h", y: -0.22, font: { size: 11 } },
     hovermode: "closest",
     plot_bgcolor: "#f8fbfc", paper_bgcolor: "#ffffff",
@@ -552,11 +637,11 @@ function _renderMap(scatter, varMeta) {
     if (_var === "air_temp" || _var === "sea_surface_temp") {
       vmin = -5; vmax = 5;
     } else {
-      const absmax = Math.max(...vals.map(Math.abs));
+      let absmax = 0; for (const v of vals) { const av = Math.abs(v); if (av > absmax) absmax = av; }
       vmin = -absmax; vmax = absmax;
     }
   } else {
-    vmin = 0; vmax = Math.max(...vals);
+    vmin = 0; vmax = 0; for (const v of vals) if (v > vmax) vmax = v;
   }
 
   const markers = pts.map(({ lat, lon, v, n }) => {

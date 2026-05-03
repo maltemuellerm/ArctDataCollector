@@ -1,0 +1,16 @@
+[Unit]
+Description=Fetch DMI Greenland weather station observation CSVs
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/arct-collector
+ExecStart=/opt/arct-collector/.venv/bin/python3 /opt/arct-collector/scripts/fetch_dmi_data.py
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

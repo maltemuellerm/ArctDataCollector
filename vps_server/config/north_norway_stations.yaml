@@ -1,0 +1,52 @@
+# Northern Norwegian mainland station sources via the MET Norway Frost API.
+# Key weather stations along the Finnmark coast and Nordkapp peninsula.
+# Observations are fetched from CAMPAIGN_START = 2026-04-01 onward.
+
+stations:
+  - name: "Nordkapp E69"
+    station_id: "SN94640"
+    latitude: 71.157
+    longitude: 25.779
+    active: true
+
+  - name: "Fruholmen Fyr"
+    station_id: "SN94500"
+    latitude: 71.094
+    longitude: 23.984
+    active: true
+
+  - name: "Slettnes Fyr"
+    station_id: "SN96400"
+    latitude: 71.089
+    longitude: 28.217
+    active: true
+
+  - name: "Mehamn Lufthavn"
+    station_id: "SN96310"
+    latitude: 71.033
+    longitude: 27.830
+    active: true
+
+  - name: "Honningsvåg Lufthavn"
+    station_id: "SN94680"
+    latitude: 71.010
+    longitude: 25.978
+    active: true
+
+  - name: "Berlevåg Lufthavn"
+    station_id: "SN98090"
+    latitude: 70.873
+    longitude: 29.042
+    active: true
+
+  - name: "Makkaur Fyr"
+    station_id: "SN98400"
+    latitude: 70.706
+    longitude: 30.070
+    active: true
+
+  - name: "Hammerfest Lufthavn"
+    station_id: "SN94280"
+    latitude: 70.681
+    longitude: 23.677
+    active: true

@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Compute ECMWF IFS / AIFS NWP verification statistics against Arctic observations.
+"""Compute ECMWF NWP verification statistics against Arctic observations.
 
-For each model (IFS HRES and AIFS) and each 00Z/12Z run in the last --days days:
+Models: IFS HRES (expver=1), AIFS (expver=1), IFS experimental (expver=80).
+
+For each model and each 00Z/12Z run in the last --days days:
   1. Downloads a NetCDF file from MARS (ECMWFService) for the Arctic domain.
-  2. Matches observation CSVs (ships, SIMBA, thermistor, ArctSum, SvalMIZ, IABP)
-     to the nearest grid point and time step.
+  2. Matches observation CSVs (ships, SIMBA, thermistor, ArctSum, SvalMIZ, IABP,
+     Svalbard, Northern Norway, Greenland, Canada, Offshore) to the nearest grid
+     point and time step.
   3. Caches raw pairs per run → <out-dir>/runs_{model}/YYYYMMDD_HH.json
      (uses obs-coverage-aware invalidation: same logic as compute_arome_verification.py)
   4. Aggregates pairs and writes <out-dir>/verification_{model}.json
@@ -13,7 +16,7 @@ The downloaded NetCDF file is deleted immediately after processing each run.
 
 Usage
 -----
-  python3 compute_ecmwf_verification.py [--model ifs|aifs|both] [--days 30]
+  python3 compute_ecmwf_verification.py [--model ifs|aifs|ifs_exp|both] [--days 30]
                                          [--obs-dir PATH] [--out-dir PATH]
                                          [--force] [--log-level INFO]
 
@@ -25,6 +28,10 @@ NOTE on AIFS MARS keywords
 The class/stream/expver for AIFS may change as ECMWF operationalises the model.
 Verify current keywords at: https://apps.ecmwf.int/mars-catalogue/
 Update _MODELS["aifs"] below if requests fail.
+
+NOTE on IFS experimental (ifs_exp)
+-----------------------------------
+Archived under class=od, expver=80.  Access confirmed 2026-05-01.
 """
 
 import argparse
@@ -71,13 +78,27 @@ _MODELS: dict[str, dict] = {
         "max_lead_h": 72,
         "time_tol_s": 10800,   # ±3 h (wider tolerance for 6-hourly steps)
     },
+    "ifs_exp": {
+        "label":      "IFS experimental",
+        "mars_class": "od",
+        "stream":     "oper",
+        "expver":     "80",
+        "type":       "fc",
+        # Hourly steps 0–72; same resolution/coverage as IFS HRES
+        "steps":      "/".join(str(s) for s in range(0, 73)),
+        "run_hours":  (0, 12),
+        "max_lead_h": 72,
+        "time_tol_s": 5400,    # ±90 min
+    },
 }
 
 # Pan-Arctic domain — N/W/S/E format for MARS "area" keyword.
 # Full 360° longitude coverage north of 60°N so that all Arctic obs sources
 # (including North America, Russia east, Bering Strait) are included.
 _AREA   = "90/-180/60/180"
-_GRID   = "0.25/0.25"
+# 0.1° regular lat/lon — closest to the IFS HRES native grid (O1280 ≈ 9 km ≈ 0.1°).
+# Used for all ECMWF models so statistics are on a consistent, high-resolution grid.
+_GRID   = "0.1/0.1"
 # GRIB parameter codes: 2m temp, skin temp, MSLP, 10m u-wind, 10m v-wind
 _PARAMS = "167/235/151/165/166"
 
@@ -94,18 +115,40 @@ _VAR_MAP: dict[str, tuple] = {
 
 # ── Observation source configuration (identical to compute_arome_verification) ─
 _SOURCES: dict[str, dict] = {
-    "ships":      {"variables": ["air_temp", "wind_speed", "air_pressure"],
-                   "pattern": "*.csv"},
-    "simba":      {"variables": ["air_temp", "air_pressure"],
-                   "pattern": "*.csv"},
-    "thermistor": {"variables": ["air_temp", "air_pressure"],
-                   "pattern": "*_ts.csv"},
-    "arctsum":    {"variables": ["air_temp"],
-                   "pattern": "*_ts.csv"},
-    "svalmiz":    {"variables": ["air_temp"],
-                   "pattern": "*_ts.csv"},
-    "iabp":       {"variables": ["air_temp", "air_pressure"],
-                   "pattern": "*.csv"},
+    "ships":        {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "simba":        {"variables": ["air_temp", "air_pressure"],
+                     "pattern": "*.csv"},
+    "thermistor":   {"variables": ["air_temp", "air_pressure"],
+                     "pattern": "*_ts.csv"},
+    "arctsum":      {"variables": ["air_temp"],
+                     "pattern": "*_ts.csv"},
+    "svalmiz":      {"variables": ["air_temp"],
+                     "pattern": "*_ts.csv"},
+    "iabp":         {"variables": ["air_temp", "air_pressure"],
+                     "pattern": "*.csv"},
+    "svalbard":     {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "north_norway": {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "offshore":     {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "greenland":    {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "canada":       {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "alaska":       {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "russia":       {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "iceland":      {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "finland":      {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "sweden":       {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "norway_buoys": {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
 }
 
 _VAR_META: dict[str, dict] = {
@@ -758,6 +801,19 @@ def _run_model(
         "Wrote %s (%.1f KB)", out_file, out_file.stat().st_size / 1024
     )
 
+    # Write a lightweight timeseries-only file for the map explorer overlay.
+    # This avoids the map page having to download the full ~60 MB verification JSON.
+    ts_file = out_dir / f"timeseries_{model_name}.json"
+    ts_output = {
+        "generated": output["generated"],
+        "model":     output["model"],
+        "timeseries": result.get("timeseries", {}),
+    }
+    ts_file.write_text(json.dumps(ts_output, ensure_ascii=False), encoding="utf-8")
+    logger.info(
+        "Wrote %s (%.1f KB)", ts_file, ts_file.stat().st_size / 1024
+    )
+
 
 # ── CLI ────────────────────────────────────────────────────────────────────────
 
@@ -769,8 +825,8 @@ def _parse_args() -> argparse.Namespace:
         description="Compute ECMWF IFS / AIFS Arctic verification statistics."
     )
     p.add_argument(
-        "--model", default="both", choices=["ifs", "aifs", "both"],
-        help="Which model(s) to process (default: both)",
+        "--model", default="both", choices=["ifs", "aifs", "ifs_exp", "both"],
+        help="Which model(s) to process (default: both = all models)",
     )
     p.add_argument(
         "--days", type=int, default=30,

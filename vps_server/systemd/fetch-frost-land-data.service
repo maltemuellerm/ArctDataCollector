@@ -1,0 +1,13 @@
+[Unit]
+Description=Fetch Frost land-station observation CSVs (Svalbard, N-Norway, Offshore)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/arct-collector
+ExecStart=/opt/arct-collector/.venv/bin/python3 /opt/arct-collector/scripts/fetch_frost_land_data.py
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1

@@ -86,6 +86,39 @@ else
   echo "  No IABP CSVs found, skipping."
 fi
 
+CSV_SVALBARD_SRC="${LOCAL_CSV_DIR}/svalbard"
+CSV_SVALBARD_DST="${WEBSITE_DIR}/data/svalbard"
+if ls "${CSV_SVALBARD_SRC}"/*.csv 1>/dev/null 2>&1; then
+  echo "Syncing Svalbard station CSVs into website/data/svalbard/ ..."
+  mkdir -p "${CSV_SVALBARD_DST}"
+  cp "${CSV_SVALBARD_SRC}"/*.csv "${CSV_SVALBARD_DST}/"
+  echo "  $(ls "${CSV_SVALBARD_DST}"/*.csv | wc -l) Svalbard CSV files ready."
+else
+  echo "  No Svalbard CSVs found, skipping."
+fi
+
+CSV_NORTHNO_SRC="${LOCAL_CSV_DIR}/north_norway"
+CSV_NORTHNO_DST="${WEBSITE_DIR}/data/north_norway"
+if ls "${CSV_NORTHNO_SRC}"/*.csv 1>/dev/null 2>&1; then
+  echo "Syncing Northern Norway station CSVs into website/data/north_norway/ ..."
+  mkdir -p "${CSV_NORTHNO_DST}"
+  cp "${CSV_NORTHNO_SRC}"/*.csv "${CSV_NORTHNO_DST}/"
+  echo "  $(ls "${CSV_NORTHNO_DST}"/*.csv | wc -l) Northern Norway CSV files ready."
+else
+  echo "  No Northern Norway CSVs found, skipping."
+fi
+
+CSV_OFFSHORE_SRC="${LOCAL_CSV_DIR}/offshore"
+CSV_OFFSHORE_DST="${WEBSITE_DIR}/data/offshore"
+if ls "${CSV_OFFSHORE_SRC}"/*.csv 1>/dev/null 2>&1; then
+  echo "Syncing Offshore platform CSVs into website/data/offshore/ ..."
+  mkdir -p "${CSV_OFFSHORE_DST}"
+  cp "${CSV_OFFSHORE_SRC}"/*.csv "${CSV_OFFSHORE_DST}/"
+  echo "  $(ls "${CSV_OFFSHORE_DST}"/*.csv | wc -l) Offshore CSV files ready."
+else
+  echo "  No Offshore CSVs found, skipping."
+fi
+
 echo "Starting local server on http://localhost:${PORT}"
 echo "Press Ctrl-C to stop."
 cd "${WEBSITE_DIR}"

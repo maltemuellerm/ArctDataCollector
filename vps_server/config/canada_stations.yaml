@@ -1,0 +1,60 @@
+# Canadian Arctic weather station sources via the MSC GeoMet SWOB-realtime API.
+# Stations are identified by their WMO synop number.
+# The API is queried using a ±0.3° bounding box around lat/lon + datetime filter.
+# Wind speed is reported in km/h by the API and converted to m/s on ingest.
+# Observations are fetched from CAMPAIGN_START = 2026-04-01 onward.
+
+stations:
+  - name: "Alert"
+    station_id: "71355"
+    latitude: 82.4938
+    longitude: -62.3522
+    active: true
+
+  - name: "Svartevaeg"
+    station_id: "71872"
+    latitude: 81.1612
+    longitude: -91.8161
+    active: true
+
+  - name: "Eureka"
+    station_id: "71613"
+    latitude: 79.9892
+    longitude: -85.9339
+    active: true
+
+  - name: "Grise Fiord"
+    station_id: "71971"
+    latitude: 76.4225
+    longitude: -82.9012
+    active: true
+
+  - name: "Resolute"
+    station_id: "71018"
+    latitude: 74.7063
+    longitude: -94.9676
+    active: true
+
+  - name: "Arctic Bay"
+    station_id: "71592"
+    latitude: 72.9928
+    longitude: -85.0116
+    active: true
+
+  - name: "Pond Inlet"
+    station_id: "71576"
+    latitude: 72.6931
+    longitude: -77.9574
+    active: true
+
+  - name: "Sachs Harbour"
+    station_id: "71467"
+    latitude: 71.9916
+    longitude: -125.2431
+    active: true
+
+  - name: "Clyde River"
+    station_id: "71358"
+    latitude: 70.4840
+    longitude: -68.5149
+    active: true

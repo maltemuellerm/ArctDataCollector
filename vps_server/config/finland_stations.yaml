@@ -1,0 +1,42 @@
+# Finnish Arctic weather stations via the FMI Open Data WFS API.
+# API docs: https://en.ilmatieteenlaitos.fi/open-data-manual
+# Endpoint:  https://opendata.fmi.fi/wfs
+# Station IDs are FMISID (FMI Station ID) numbers.
+# Observations are fetched from CAMPAIGN_START = 2026-04-01 onward.
+
+stations:
+  - name: "Utsjoki"
+    station_id: "101976"
+    latitude: 69.908
+    longitude: 27.007
+    active: true
+
+  - name: "Inari Saariselkä"
+    station_id: "102006"
+    latitude: 68.560
+    longitude: 27.517
+    active: true
+
+  - name: "Sodankylä"
+    station_id: "101932"
+    latitude: 67.367
+    longitude: 26.633
+    active: true
+
+  - name: "Enontekiö Kilpisjärvi"
+    station_id: "102016"
+    latitude: 69.039
+    longitude: 20.814
+    active: true
+
+  - name: "Enontekiö Näkkälä"
+    station_id: "102019"
+    latitude: 68.603
+    longitude: 23.576
+    active: true
+
+  - name: "Inari Angeli"
+    station_id: "102026"
+    latitude: 68.903
+    longitude: 25.736
+    active: true

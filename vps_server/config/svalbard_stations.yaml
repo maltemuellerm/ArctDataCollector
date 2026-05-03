@@ -1,0 +1,64 @@
+# Svalbard & Jan Mayen land-based station sources via the MET Norway Frost API.
+# All coordinates are fixed (land stations do not report position as observations).
+# Observations are fetched from CAMPAIGN_START = 2026-04-01 onward.
+
+stations:
+  - name: "Karl XII-øya"
+    station_id: "SN99935"
+    latitude: 80.652
+    longitude: 25.005
+    active: true
+
+  - name: "Verlegenhuken"
+    station_id: "SN99927"
+    latitude: 80.055
+    longitude: 16.243
+    active: true
+
+  - name: "Ny-Ålesund"
+    station_id: "SN99910"
+    latitude: 78.922
+    longitude: 11.932
+    active: true
+
+  - name: "Svalbard Lufthavn"
+    station_id: "SN99840"
+    latitude: 78.245
+    longitude: 15.502
+    active: true
+
+  - name: "Adventdalen"
+    station_id: "SN99870"
+    latitude: 78.202
+    longitude: 15.831
+    active: true
+
+  - name: "Isfjord Radio"
+    station_id: "SN99790"
+    latitude: 78.062
+    longitude: 13.619
+    active: true
+
+  - name: "Hornsund"
+    station_id: "SN99754"
+    latitude: 77.000
+    longitude: 15.535
+    active: true
+
+  - name: "Hopen"
+    station_id: "SN99720"
+    latitude: 76.510
+    longitude: 25.013
+    active: true
+
+  - name: "Bjørnøya"
+    station_id: "SN99710"
+    latitude: 74.504
+    longitude: 18.998
+    active: true
+
+  - name: "Jan Mayen"
+    station_id: "SN99950"
+    latitude: 70.939
+    longitude: -8.669
+    active: true

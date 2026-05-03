@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Alaska ASOS station fetch every 4 hours
+Requires=fetch-alaska-data.service
+
+[Timer]
+OnBootSec=14min
+OnUnitActiveSec=4h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

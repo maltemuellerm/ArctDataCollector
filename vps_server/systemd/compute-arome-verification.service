@@ -11,7 +11,7 @@ ExecStart=/opt/arct-collector/.venv/bin/python3 /opt/arct-collector/scripts/comp
 StandardOutput=append:/opt/arct-collector/logs/arome_verification.log
 StandardError=append:/opt/arct-collector/logs/arome_verification.log
 Environment=PYTHONUNBUFFERED=1
-TimeoutStartSec=7200
+TimeoutStartSec=86400
 
 [Install]
 WantedBy=multi-user.target

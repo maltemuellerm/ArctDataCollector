@@ -1,0 +1,42 @@
+# Swedish Arctic weather stations via SMHI Open Data API.
+# API docs: https://opendata.smhi.se/apidocs/
+# Endpoint:  https://opendata-download-metobs.smhi.se/api/version/1.0
+# Station IDs are SMHI station IDs (verified via /parameter/1.json for active stations).
+
+stations:
+  - name: "Naimakka A"
+    station_id: "191910"
+    latitude: 68.676
+    longitude: 21.523
+    active: true
+
+  - name: "Karesuando A"
+    station_id: "192840"
+    latitude: 68.442
+    longitude: 22.444
+    active: true
+
+  - name: "Katterjåkk A"
+    station_id: "188850"
+    latitude: 68.420
+    longitude: 18.168
+    active: true
+
+  - name: "Abisko Aut"
+    station_id: "188790"
+    latitude: 68.354
+    longitude: 18.816
+    active: true
+
+  - name: "Tarfala A"
+    station_id: "178970"
+    latitude: 67.912
+    longitude: 18.610
+    active: true
+
+  - name: "Esrange"
+    station_id: "181970"
+    latitude: 67.891
+    longitude: 21.083
+    active: true
+

@@ -54,6 +54,28 @@ function buildCard(item, tStart, tEnd) {
     ? `<span class="obs-tag svalmiz-tag">SvalMIZ</span>`
     : item.type === "iabp"
     ? `<span class="obs-tag iabp-tag">IABP</span>`
+    : item.type === "svalbard"
+    ? `<span class="obs-tag svalbard-tag">SVLB</span>`
+    : item.type === "north_norway"
+    ? `<span class="obs-tag north-norway-tag">N-NO</span>`
+    : item.type === "offshore"
+    ? `<span class="obs-tag offshore-tag">OFFSH</span>`
+    : item.type === "greenland"
+    ? `<span class="obs-tag greenland-tag">GL</span>`
+    : item.type === "canada"
+    ? `<span class="obs-tag canada-tag">CA</span>`
+    : item.type === "alaska"
+    ? `<span class="obs-tag alaska-tag">AK</span>`
+    : item.type === "russia"
+    ? `<span class="obs-tag russia-tag">RU</span>`
+    : item.type === "iceland"
+    ? `<span class="obs-tag iceland-tag">IS</span>`
+    : item.type === "finland"
+    ? `<span class="obs-tag finland-tag">FI</span>`
+    : item.type === "sweden"
+    ? `<span class="obs-tag sweden-tag">SE</span>`
+    : item.type === "norway_buoys"
+    ? `<span class="obs-tag norway-buoys-tag">NO-B</span>`
     : `<span class="obs-tag thermistor-tag">BUOY</span>`;
 
   const dotClass = isCurrentlyActive(item) ? "green" : "grey";
@@ -91,6 +113,15 @@ function buildCard(item, tStart, tEnd) {
     if (ta)  metrics += `<span>\uD83C\uDF21\uFE0F ${parseFloat(ta).toFixed(1)}\u00b0C</span>`;
     if (ts)  metrics += `<span>\u2744\uFE0F Ts ${parseFloat(ts).toFixed(1)}\u00b0C</span>`;
     if (bp)  metrics += `<span>&#8853; ${parseFloat(bp).toFixed(1)} hPa</span>`;
+  } else if (item.type === "svalbard" || item.type === "north_norway" || item.type === "offshore" || item.type === "greenland" || item.type === "canada" ||
+             item.type === "alaska"   || item.type === "russia"  || item.type === "iceland" ||
+             item.type === "finland"  || item.type === "sweden"  || item.type === "norway_buoys") {
+    const temp = row["air_temp"];
+    const wind = row["wind_speed"];
+    const pres = row["air_pressure"];
+    if (temp) metrics += `<span>\uD83C\uDF21\uFE0F ${temp}\u00b0C</span>`;
+    if (wind) metrics += `<span>\uD83D\uDCA8 ${wind} m/s</span>`;
+    if (pres) metrics += `<span>&#8853; ${pres} hPa</span>`;
   }
 
   card.innerHTML = `
@@ -135,6 +166,9 @@ function selectItem(item) {
   else if (item.type === "simba")  renderBuoyDetail(filtered);
   else if (item.type === "arctsum" || item.type === "svalmiz") renderArctsumDetail(filtered);
   else if (item.type === "iabp")   renderIabpDetail(filtered);
+  else if (item.type === "svalbard" || item.type === "north_norway" || item.type === "offshore" || item.type === "greenland" || item.type === "canada" ||
+           item.type === "alaska"   || item.type === "russia"  || item.type === "iceland" ||
+           item.type === "finland"  || item.type === "sweden"  || item.type === "norway_buoys") renderShipDetail(filtered);
   else                             renderThermistorDetail(filtered);
   _renderModelForecast(item, filtered);
 }
@@ -142,15 +176,34 @@ function selectItem(item) {
 /* ── Rebuild all cards ────────────────────────────────── */
 
 const _BADGE_MAP = {
-  "ship-cards":        "badge-ships",
-  "buoy-cards":        "badge-simba",
-  "thermistor-cards":  "badge-thermistor",
-  "arctsum-cards":     "badge-arctsum",
-  "svalmiz-cards":     "badge-svalmiz",
-  "iabp-cards":        "badge-iabp",
+  "ship-cards":         "badge-ships",
+  "buoy-cards":         "badge-simba",
+  "thermistor-cards":   "badge-thermistor",
+  "arctsum-cards":      "badge-arctsum",
+  "svalmiz-cards":      "badge-svalmiz",
+  "iabp-cards":         "badge-iabp",
+  "svalbard-cards":     "badge-svalbard",
+  "north-norway-cards": "badge-north-norway",
+  "offshore-cards":     "badge-offshore",
+  "greenland-cards":    "badge-greenland",
+  "canada-cards":       "badge-canada",
+  "alaska-cards":       "badge-alaska",
+  "russia-cards":       "badge-russia",
+  "iceland-cards":      "badge-iceland",
+  "finland-cards":      "badge-finland",
+  "sweden-cards":       "badge-sweden",
+  "norway-buoys-cards": "badge-norway-buoys",
 };
 
+
+const _LAND_CARD_IDS = new Set([
+  "svalbard-cards", "north-norway-cards", "greenland-cards", "canada-cards",
+  "offshore-cards", "alaska-cards", "russia-cards", "iceland-cards",
+  "finland-cards", "sweden-cards"
+]);
+
 function rebuildCards(groups, tStart, tEnd) {
+  let landActive = 0, landTotal = 0;
   for (const [containerId, items] of groups) {
     const el = document.getElementById(containerId);
     el.innerHTML = "";
@@ -165,20 +218,31 @@ function rebuildCards(groups, tStart, tEnd) {
       el.appendChild(card);
     });
     // Update count badge: active / total
+    const active = items.filter(i => rowsInWindow(i, tStart, tEnd).length > 0).length;
     const badgeEl = document.getElementById(_BADGE_MAP[containerId]);
     if (badgeEl) {
-      const active = items.filter(i => rowsInWindow(i, tStart, tEnd).length > 0).length;
-      badgeEl.textContent = items.length === active ? items.length : `${active} / ${items.length}`;
+      badgeEl.textContent = items.length === active ? items.length : `${active} / ${items.length}`;
     }
+    if (_LAND_CARD_IDS.has(containerId)) {
+      landActive += active;
+      landTotal  += items.length;
+    }
+  }
+  const landBadge = document.getElementById("badge-land");
+  if (landBadge) {
+    landBadge.textContent = landTotal === landActive ? landTotal : `${landActive} / ${landTotal}`;
   }
 }
 
 /* ── NWP model forecast overlay ─────────────────────────── */
 
+// Lightweight timeseries-only files (~5–7 MB each) used for the map explorer overlay.
+// The full verification JSONs (50–60 MB) are only loaded by the verification pages.
 const _VRF_URLS = {
-  arome: (IS_LOCAL ? "" : "http://148.230.70.161") + "/data/arome/verification.json",
-  ifs:   (IS_LOCAL ? "" : "http://148.230.70.161") + "/data/ecmwf/verification_ifs.json",
-  aifs:  (IS_LOCAL ? "" : "http://148.230.70.161") + "/data/ecmwf/verification_aifs.json",
+  arome:   (IS_LOCAL ? "" : "http://148.230.70.161") + "/data/arome/timeseries.json",
+  ifs:     (IS_LOCAL ? "" : "http://148.230.70.161") + "/data/ecmwf/timeseries_ifs.json",
+  aifs:    (IS_LOCAL ? "" : "http://148.230.70.161") + "/data/ecmwf/timeseries_aifs.json",
+  ifs_exp: (IS_LOCAL ? "" : "http://148.230.70.161") + "/data/ecmwf/timeseries_ifs_exp.json",
 };
 const _vrf = {};
 let   _vrfLoadStarted = false;
@@ -195,9 +259,10 @@ async function _loadVrfData() {
 }
 
 const _VRF_MODEL_CFG = [
-  { key: "arome", label: "AROME",    color: "#2e5fa3" },
-  { key: "ifs",   label: "IFS HRES", color: "#c44b27" },
-  { key: "aifs",  label: "AIFS",     color: "#2dab6f" },
+  { key: "arome",   label: "AROME",            color: "#2e5fa3" },
+  { key: "ifs",     label: "IFS HRES",          color: "#c44b27" },
+  { key: "aifs",   label: "AIFS",              color: "#2dab6f" },
+  { key: "ifs_exp", label: "IFS experimental",  color: "#8b5cf6" },
 ];
 
 async function _renderModelForecast(item, filtered) {
@@ -212,11 +277,15 @@ async function _renderModelForecast(item, filtered) {
 
   if (!_vrfLoadStarted) _loadVrfData();
 
-  // Wait up to 6 s for at least one model to load
+  // Wait up to 6 s for all timeseries files to load (they are small, ~5–7 MB each).
+  const _VRF_KEYS = Object.keys(_VRF_URLS);
   let waited = 0;
-  while (!Object.keys(_vrf).length && waited < 6000) {
-    await new Promise(r => setTimeout(r, 400));
-    waited += 400;
+  while (waited < 6000) {
+    const loaded = _VRF_KEYS.filter(k => _vrf[k]);
+    if (loaded.length === _VRF_KEYS.length) break;
+    if (loaded.length > 0 && waited >= 4000) break;  // give up on unavailable models
+    await new Promise(r => setTimeout(r, 300));
+    waited += 300;
   }
   if (!Object.keys(_vrf).length) return;
 
@@ -252,11 +321,15 @@ async function _renderModelForecast(item, filtered) {
       line: { color: color, width: 1.8 } });
   }
 
-  if (traces.length < 2) return;  // need at least obs + 1 model line
+  if (traces.length < 1) return;  // nothing to show
+  const hasModels = traces.length >= 2;
 
   container.style.cssText = "border-top:1px solid #d0dde6;margin-top:.5rem";
+  const titleText = hasModels
+    ? "Air temperature \u2014 model forecast (0\u201324 h, stitched)"
+    : "Air temperature \u2014 observations (no model data yet)";
   Plotly.newPlot(container, traces, {
-    title: { text: "Air temperature \u2014 model forecast (0\u201324 h, stitched)",
+    title: { text: titleText,
              font: { size: 12 }, x: 0.02, xanchor: "left" },
     xaxis: { title: "Date (UTC)", showgrid: true, gridcolor: "#eee" },
     yaxis: { title: "Air temp (\u00b0C)", showgrid: true, gridcolor: "#eee", zeroline: false },
@@ -274,16 +347,21 @@ async function init() {
   const statusEl   = document.getElementById("status");
   const mapSection = document.getElementById("map-section");
 
-  let ships, buoys, thermistors, arctsum, svalmiz, iabp;
+  let ships, buoys, thermistors, arctsum, svalmiz, iabp, svalbard, northNorway, offshore, greenland, canada,
+      alaska, russia, iceland, finland, sweden, norwayBuoys;
   try {
-    [ships, buoys, thermistors, arctsum, svalmiz, iabp] = await Promise.all([
-      loadAllShips(), loadAllBuoys(), loadAllThermistors(), loadAllArctsum(), loadAllSvalMIZ(), loadAllIABP()
+    [ships, buoys, thermistors, arctsum, svalmiz, iabp, svalbard, northNorway, offshore, greenland, canada,
+     alaska, russia, iceland, finland, sweden, norwayBuoys] = await Promise.all([
+      loadAllShips(), loadAllBuoys(), loadAllThermistors(), loadAllArctsum(), loadAllSvalMIZ(), loadAllIABP(),
+      loadAllSvalbard(), loadAllNorthNorway(), loadAllOffshore(), loadAllGreenland(), loadAllCanada(),
+      loadAllAlaska(), loadAllRussia(), loadAllIceland(), loadAllFinland(), loadAllSweden(), loadAllNorwayBuoys()
     ]);
   } catch (err) {
     statusEl.textContent = "Failed to load data: " + err.message;
     return;
   }
-  const allItems = [...ships, ...buoys, ...thermistors, ...arctsum, ...svalmiz, ...iabp];
+  const allItems = [...ships, ...buoys, ...thermistors, ...arctsum, ...svalmiz, ...iabp, ...svalbard, ...northNorway, ...offshore, ...greenland, ...canada,
+                   ...alaska, ...russia, ...iceland, ...finland, ...sweden, ...norwayBuoys];
   if (!allItems.length) { statusEl.textContent = "No data available."; return; }
   statusEl.style.display = "none";
   _loadVrfData();  // pre-load verification data in background
@@ -320,12 +398,23 @@ async function init() {
   sliderLo.value = Math.max(0, days.length - 15);  // default: last 14 days
 
   const cardGroups = [
-    ["ship-cards", ships],
-    ["arctsum-cards", arctsum],
-    ["svalmiz-cards", svalmiz],
-    ["iabp-cards", iabp],
-    ["buoy-cards", buoys],
-    ["thermistor-cards", thermistors],
+    ["ship-cards",         ships],
+    ["arctsum-cards",      arctsum],
+    ["svalmiz-cards",      svalmiz],
+    ["iabp-cards",         iabp],
+    ["buoy-cards",         buoys],
+    ["thermistor-cards",   thermistors],
+    ["svalbard-cards",     svalbard],
+    ["north-norway-cards", northNorway],
+    ["greenland-cards",    greenland],
+    ["canada-cards",       canada],
+    ["offshore-cards",     offshore],
+    ["alaska-cards",       alaska],
+    ["russia-cards",       russia],
+    ["iceland-cards",      iceland],
+    ["finland-cards",      finland],
+    ["sweden-cards",       sweden],
+    ["norway-buoys-cards", norwayBuoys],
   ];
 
   function onSliderChange() {
@@ -351,6 +440,11 @@ async function init() {
   sliderHi.addEventListener("input", onSliderChange);
 
   // ── Accordion toggles ──────────────────────────────────
+  document.querySelectorAll(".section-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      btn.closest(".section-group").classList.toggle("collapsed");
+    });
+  });
   document.querySelectorAll(".obs-toggle").forEach(btn => {
     btn.addEventListener("click", () => {
       const grp = btn.closest(".obs-group");

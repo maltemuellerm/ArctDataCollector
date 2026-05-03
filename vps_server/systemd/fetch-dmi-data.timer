@@ -1,0 +1,12 @@
+[Unit]
+Description=Run DMI Greenland station fetch every 4 hours
+Requires=fetch-dmi-data.service
+
+[Timer]
+# Run 12 minutes after boot, then every 4 hours.
+OnBootSec=12min
+OnUnitActiveSec=4h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

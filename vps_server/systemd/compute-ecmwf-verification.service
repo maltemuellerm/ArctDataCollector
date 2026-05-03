@@ -1,5 +1,5 @@
 [Unit]
-Description=Compute ECMWF IFS/AIFS Arctic verification statistics
+Description=Compute ECMWF IFS/AIFS/IFS-experimental Arctic verification statistics
 After=network-online.target
 Wants=network-online.target
 
@@ -13,8 +13,8 @@ ExecStart=/opt/arct-collector/.venv/bin/python3 \
 StandardOutput=append:/opt/arct-collector/logs/ecmwf_verification.log
 StandardError=append:/opt/arct-collector/logs/ecmwf_verification.log
 
-# MARS requests can take 10–30 min for queue + download; allow up to 4 h
-TimeoutStartSec=14400
+# MARS requests can take 10–30 min for queue + download; allow up to 24 h for forced full recompute
+TimeoutStartSec=86400
 
 [Install]
 WantedBy=multi-user.target

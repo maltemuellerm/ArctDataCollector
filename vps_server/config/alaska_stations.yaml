@@ -1,0 +1,60 @@
+# Alaskan Arctic weather stations via Iowa Environmental Mesonet (IEM) ASOS network.
+# Station IDs are ICAO 4-letter codes (or 3-letter FAA codes).
+# Observations are fetched from CAMPAIGN_START = 2026-04-01 onward.
+
+stations:
+  - name: "Utqiagvik (Barrow)"
+    station_id: "PABR"
+    network: "AK_ASOS"
+    latitude: 71.2854
+    longitude: -156.7887
+    active: true
+
+  - name: "Prudhoe Bay / Deadhorse"
+    station_id: "PAPR"
+    network: "AK_ASOS"
+    latitude: 70.1997
+    longitude: -148.4654
+    active: true
+
+  - name: "Kotzebue"
+    station_id: "PAOT"
+    network: "AK_ASOS"
+    latitude: 66.8846
+    longitude: -162.5989
+    active: true
+
+  - name: "Nome"
+    station_id: "PAOM"
+    network: "AK_ASOS"
+    latitude: 64.5122
+    longitude: -165.4453
+    active: true
+
+  - name: "Wainwright"
+    station_id: "PAWI"
+    network: "AK_ASOS"
+    latitude: 70.6383
+    longitude: -159.9949
+    active: true
+
+  - name: "Point Hope"
+    station_id: "PAPO"
+    network: "AK_ASOS"
+    latitude: 68.3481
+    longitude: -166.7992
+    active: true
+
+  - name: "Point Lay"
+    station_id: "PPIZ"
+    network: "AK_ASOS"
+    latitude: 69.7328
+    longitude: -163.0050
+    active: true
+
+  - name: "Barter Island (Kaktovik)"
+    station_id: "PABM"
+    network: "AK_ASOS"
+    latitude: 70.1342
+    longitude: -143.5778
+    active: true

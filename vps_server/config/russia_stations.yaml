@@ -1,0 +1,81 @@
+# Russian Arctic, Franz Josef Land, and Novaya Zemlya weather stations.
+# Source: NOAA NCEI Integrated Surface Database (ISD), global-hourly dataset.
+# Station IDs are 11-char USAF+WBAN codes as used by the NCEI API.
+# Coordinates used only if the ISD record lacks position data.
+# Observations are fetched from CAMPAIGN_START = 2026-04-01 onward.
+
+stations:
+  # ── Franz Josef Land ───────────────────────────────────────────────────────
+  - name: "Krenkel (Franz Josef Land)"
+    station_id: "20046099999"
+    latitude: 80.617
+    longitude: 58.050
+    active: true
+
+  - name: "Golomyanny (Severnaya Zemlya)"
+    station_id: "20667099999"
+    latitude: 79.550
+    longitude: 90.633
+    active: true
+
+  # ── Novaya Zemlya ──────────────────────────────────────────────────────────
+  - name: "Malye Karmakuly (Novaya Zemlya S)"
+    station_id: "22422099999"
+    latitude: 72.368
+    longitude: 52.700
+    active: false   # no NCEI data available for this station ID
+
+  - name: "Belushya Guba (Novaya Zemlya)"
+    station_id: "22113099999"
+    latitude: 71.550
+    longitude: 52.317
+    active: true
+
+  # ── Russian High Arctic mainland ───────────────────────────────────────────
+  - name: "Mys Chelyuskin"
+    station_id: "20069099999"
+    latitude: 77.717
+    longitude: 104.283
+    active: true
+
+  - name: "Ostrov Vize"
+    station_id: "20292099999"
+    latitude: 79.500
+    longitude: 76.983
+    active: true
+
+  - name: "Dikson"
+    station_id: "23078099999"
+    latitude: 73.500
+    longitude: 80.400
+    active: true
+
+  - name: "Tiksi"
+    station_id: "21432099999"
+    latitude: 71.583
+    longitude: 128.917
+    active: true
+
+  - name: "Mys Shmidta"
+    station_id: "25399099999"
+    latitude: 68.900
+    longitude: -179.367
+    active: true
+
+  - name: "Ostrov Kotelny"
+    station_id: "20674099999"
+    latitude: 75.983
+    longitude: 137.867
+    active: true
+
+  - name: "Ostrov Ushakova"
+    station_id: "20046099999"
+    latitude: 81.917
+    longitude: 79.500
+    active: false   # same USAF as Krenkel — verify ISD record before enabling
+
+  - name: "Wrangel Island"
+    station_id: "25034099999"
+    latitude: 70.983
+    longitude: -178.617
+    active: true

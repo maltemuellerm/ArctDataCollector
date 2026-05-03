@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Sweden SMHI station fetch every 4 hours
+Requires=fetch-sweden-data.service
+
+[Timer]
+OnBootSec=22min
+OnUnitActiveSec=4h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Finland FMI station fetch every 4 hours
+Requires=fetch-finland-data.service
+
+[Timer]
+OnBootSec=20min
+OnUnitActiveSec=4h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

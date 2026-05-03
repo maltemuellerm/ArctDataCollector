@@ -74,18 +74,40 @@ _VAR_MAP: dict[str, tuple] = {
 
 # ── Observation source configuration ───────────────────────────────────────────
 _SOURCES: dict[str, dict] = {
-    "ships":     {"variables": ["air_temp", "wind_speed", "air_pressure", "humidity"],
-                  "pattern": "*.csv"},
-    "simba":     {"variables": ["air_temp", "air_pressure"],
-                  "pattern": "*.csv"},
-    "thermistor":{"variables": ["air_temp", "air_pressure"],
-                  "pattern": "*_ts.csv"},
-    "arctsum":   {"variables": ["air_temp"],
-                  "pattern": "*_ts.csv"},
-    "svalmiz":   {"variables": ["air_temp"],
-                  "pattern": "*_ts.csv"},
-    "iabp":      {"variables": ["air_temp", "air_pressure"],
-                  "pattern": "*.csv"},
+    "ships":        {"variables": ["air_temp", "wind_speed", "air_pressure", "humidity"],
+                     "pattern": "*.csv"},
+    "simba":        {"variables": ["air_temp", "air_pressure"],
+                     "pattern": "*.csv"},
+    "thermistor":   {"variables": ["air_temp", "air_pressure"],
+                     "pattern": "*_ts.csv"},
+    "arctsum":      {"variables": ["air_temp"],
+                     "pattern": "*_ts.csv"},
+    "svalmiz":      {"variables": ["air_temp"],
+                     "pattern": "*_ts.csv"},
+    "iabp":         {"variables": ["air_temp", "air_pressure"],
+                     "pattern": "*.csv"},
+    "svalbard":     {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "north_norway": {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "offshore":     {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "greenland":    {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "canada":       {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "alaska":       {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "russia":       {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "iceland":      {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "finland":      {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "sweden":       {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
+    "norway_buoys": {"variables": ["air_temp", "wind_speed", "air_pressure"],
+                     "pattern": "*.csv"},
 }
 
 _VAR_META: dict[str, dict] = {
@@ -700,6 +722,17 @@ def main() -> None:
     out_file.write_text(json.dumps(output, ensure_ascii=False, indent=None),
                         encoding="utf-8")
     logger.info("Wrote %s (%.1f KB)", out_file, out_file.stat().st_size / 1024)
+
+    # Write a lightweight timeseries-only file for the map explorer overlay.
+    ts_file = out_dir / "timeseries.json"
+    ts_output = {
+        "generated":  output["generated"],
+        "model":      "AROME Arctic",
+        "timeseries": result.get("timeseries", {}),
+    }
+    ts_file.write_text(json.dumps(ts_output, ensure_ascii=False, indent=None),
+                       encoding="utf-8")
+    logger.info("Wrote %s (%.1f KB)", ts_file, ts_file.stat().st_size / 1024)
 
 
 if __name__ == "__main__":

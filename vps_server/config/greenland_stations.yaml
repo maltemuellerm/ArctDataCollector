@@ -1,0 +1,73 @@
+# Greenland (DMI) weather stations
+# Source: DMI Open Data API (https://opendatadocs.dmi.govcloud.dk/)
+# Station IDs match DMI stationId (= WMO station number for most stations).
+# Run scripts/discover_dmi_stations.py --api-key KEY to refresh / expand this list.
+#
+# Coverage: coast + interior stations north of ~65°N, ordered N→S by latitude.
+
+stations:
+  - station_id: "04202"
+    name: "Pituffik (Thule AB)"
+    latitude: 76.531
+    longitude: -68.703
+    active: true
+
+  - station_id: "04206"
+    name: "Station Nord"
+    latitude: 81.600
+    longitude: -16.667
+    active: true
+
+  - station_id: "04220"
+    name: "Aasiaat"
+    latitude: 68.700
+    longitude: -52.783
+    active: true
+
+  - station_id: "04221"
+    name: "Ilulissat"
+    latitude: 69.230
+    longitude: -51.060
+    active: true
+
+  - station_id: "04231"
+    name: "Kangerlussuaq (Sdr. Strømfjord)"
+    latitude: 67.013
+    longitude: -50.706
+    active: true
+
+  - station_id: "04250"
+    name: "Nuuk"
+    latitude: 64.170
+    longitude: -51.750
+    active: false   # ~64°N, borderline – enable if wanted
+
+  - station_id: "04270"
+    name: "Narsarsuaq"
+    latitude: 61.160
+    longitude: -45.420
+    active: false   # south of 65°N
+
+  - station_id: "04320"
+    name: "Danmarkshavn"
+    latitude: 76.767
+    longitude: -18.667
+    active: true
+
+  - station_id: "04336"
+    name: "Nerlerit Inaat (Constable Pynt)"
+    latitude: 70.740
+    longitude: -22.650
+    active: true
+
+  - station_id: "04339"
+    name: "Ittoqqortoormiit (Scoresbysund)"
+    latitude: 70.485
+    longitude: -21.952
+    active: true
+
+  - station_id: "04360"
+    name: "Tasiilaq (Ammassalik)"
+    latitude: 65.612
+    longitude: -37.636
+    active: true

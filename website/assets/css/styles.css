@@ -164,12 +164,90 @@ body {
   vertical-align: middle;
   margin-left: 0.3rem;
 }
-.ship-tag       { background: #e8f4fd; color: #0b6b8a; }
-.simba-tag      { background: #fef3e2; color: #c0640a; }
-.thermistor-tag { background: #eaf6ee; color: #1a7a3a; }
-.arctsum-tag    { background: #f0ebfa; color: #6c3c9e; }
-.svalmiz-tag    { background: #fdf0ea; color: #9e4c1a; }
-.iabp-tag       { background: #e6f4ee; color: #155e35; }
+.ship-tag         { background: #e8f4fd; color: #0b6b8a; }
+.simba-tag        { background: #fef3e2; color: #c0640a; }
+.thermistor-tag   { background: #eaf6ee; color: #1a7a3a; }
+.arctsum-tag      { background: #f0ebfa; color: #6c3c9e; }
+.svalmiz-tag      { background: #fdf0ea; color: #9e4c1a; }
+.iabp-tag         { background: #e6f4ee; color: #155e35; }
+.svalbard-tag     { background: #e6ecf7; color: #0b3e75; }
+.north-norway-tag { background: #f9e8e8; color: #7a1515; }
+.offshore-tag     { background: #faf3e0; color: #5c3d00; }
+
+/* ── Land-stations section (parent collapsible) ───────── */
+.section-group {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.section-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.9rem 1rem;
+  background: #edf1f8;
+  border: none;
+  border-bottom: 2px solid #c8d4e8;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1a2a4a;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  text-align: left;
+  transition: background 0.15s;
+}
+.section-toggle:hover { background: #e0e8f4; }
+.section-group.collapsed .section-toggle { border-bottom-color: transparent; }
+.section-toggle::before {
+  content: "▾";
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--accent);
+  display: inline-block;
+  transition: transform 0.22s ease;
+  flex-shrink: 0;
+}
+.section-group.collapsed .section-toggle::before { transform: rotate(-90deg); }
+.section-badge {
+  margin-left: auto;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  min-width: 1.6rem;
+  text-align: center;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.section-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.28s ease;
+}
+.section-group.collapsed .section-body {
+  grid-template-rows: 0fr;
+}
+.section-body-inner {
+  overflow: hidden;
+  padding: 0.6rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.greenland-tag    { background: #e8f4ee; color: #1a5c38; }
+.canada-tag       { background: #fce8eb; color: #c41230; }
+.alaska-tag       { background: #fff3e0; color: #b35c00; }
+.russia-tag       { background: #fce8e8; color: #8b0000; }
+.iceland-tag      { background: #e8f0fa; color: #1a3f7a; }
+.finland-tag      { background: #e6f0ff; color: #003580; }
+.sweden-tag       { background: #fef9e0; color: #8a6900; }
+.norway-buoys-tag { background: #f0e8fa; color: #5b1fa3; }
 
 .ship-card .ship-name {
   font-weight: 600;

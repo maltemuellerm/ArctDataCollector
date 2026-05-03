@@ -1,11 +1,11 @@
-/* verification.js – unified NWP verification page (AROME / IFS / AIFS)
+/* verification.js – unified NWP verification page (AROME / IFS / AIFS / IFS-exp)
  *
- * Loads three verification JSONs in parallel and renders:
- *   – Map with model toggle (AROME | IFS | AIFS)
- *   – Bias & MAE chart (all three models, 6 h buckets)
- *   – RMSE chart (all three models, 6 h buckets)
+ * Loads four verification JSONs in parallel and renders:
+ *   – Map with model toggle (AROME | IFS | AIFS | IFS exp)
+ *   – Bias & MAE chart (all four models, 6 h buckets)
+ *   – RMSE chart (all four models, 6 h buckets)
  *   – Scatter plot (per-model checkboxes)
- *   – Error-vs-obs plot (per-model checkboxes)
+ *   – Variogram (all four models)
  */
 
 "use strict";
@@ -17,16 +17,18 @@ const IS_LOCAL = location.hostname === "localhost"
 const BASE = IS_LOCAL ? "" : "http://148.230.70.161";
 
 const MODELS = [
-  { key: "arome", label: "AROME",    url: `${BASE}/data/arome/verification.json` },
-  { key: "ifs",   label: "IFS HRES", url: `${BASE}/data/ecmwf/verification_ifs.json` },
-  { key: "aifs",  label: "AIFS",     url: `${BASE}/data/ecmwf/verification_aifs.json` },
+  { key: "arome",   label: "AROME",            url: `${BASE}/data/arome/verification.json` },
+  { key: "ifs",     label: "IFS HRES",          url: `${BASE}/data/ecmwf/verification_ifs.json` },
+  { key: "aifs",   label: "AIFS",              url: `${BASE}/data/ecmwf/verification_aifs.json` },
+  { key: "ifs_exp", label: "IFS experimental",  url: `${BASE}/data/ecmwf/verification_ifs_exp.json` },
 ];
 
 // Line styles per model
 const MODEL_STYLE = {
-  arome: { color: "#2e5fa3" },
-  ifs:   { color: "#c44b27" },
-  aifs:  { color: "#2dab6f" },
+  arome:   { color: "#2e5fa3" },
+  ifs:     { color: "#c44b27" },
+  aifs:    { color: "#2dab6f" },
+  ifs_exp: { color: "#8b5cf6" },
 };
 
 // ── Palette for scatter lead-time groups ──────────────────────────────────────
@@ -37,13 +39,73 @@ const GROUP_COLORS = [
 ];
 
 const SOURCE_LABELS = {
-  ships:      "Ships",
-  simba:      "SIMBA buoys",
-  thermistor: "Thermistor buoys",
-  arctsum:    "ArctSum buoys",
-  svalmiz:    "SvalMIZ buoys",
-  iabp:       "IABP buoys",
+  _land_all:    "Land-based weather (all)",
+  _land_arome:  "Land-based weather (AROME Arctic domain)",
+  svalbard:     "Svalbard & Jan Mayen",
+  north_norway: "Northern Norway",
+  offshore:     "Offshore platforms",
+  greenland:    "Greenland (DMI)",
+  canada:       "Canada (ECCC)",
+  alaska:       "Alaska (NWS)",
+  russia:       "Russia / FJL / NZ",
+  iceland:      "Iceland (IMO)",
+  finland:      "Finland (FMI)",
+  sweden:       "Sweden (SMHI)",
+  norway_buoys: "MET Norway buoys",
+  ships:        "Ships",
+  simba:        "SIMBA buoys",
+  thermistor:   "Thermistor buoys",
+  arctsum:      "ArctSum buoys",
+  svalmiz:      "SvalMIZ buoys",
+  iabp:         "IABP buoys",
 };
+
+// Land sources for the aggregate options
+const _LAND_SOURCES_ALL = [
+  "svalbard", "north_norway", "offshore", "greenland", "canada",
+  "alaska", "russia", "iceland", "finland", "sweden",
+];
+const _LAND_SOURCES_AROME = [
+  "svalbard", "north_norway", "offshore", "greenland",
+  "iceland", "finland", "sweden",
+];
+
+// Fixed source dropdown (6 curated options)
+const _FIXED_SOURCES = ["_land_all", "_land_arome", "svalmiz", "arctsum", "ships", "iabp"];
+
+function _aggSources() {
+  if (_source === "_land_all")   return _LAND_SOURCES_ALL;
+  if (_source === "_land_arome") return _LAND_SOURCES_AROME;
+  return null;
+}
+
+// ── Aggregate helpers for "All weather stations" option ────────────────────────
+function _mergeBuckets(allBuckets) {
+  if (!allBuckets.length) return null;
+  const nB = allBuckets[0].length;
+  return Array.from({ length: nB }, (_, i) => {
+    const label = allBuckets[0][i].label;
+    let totalN = 0, wBias = 0, wMAE = 0, wRMSE2 = 0;
+    for (const bkts of allBuckets) {
+      const b = bkts[i];
+      if (!b || b.n < 2 || b.rmse == null) continue;
+      totalN += b.n; wBias += b.n * b.bias; wMAE += b.n * b.mae; wRMSE2 += b.n * b.rmse * b.rmse;
+    }
+    if (totalN < 2) return { label, n: totalN, rmse: null, mae: null, bias: null };
+    return { label, n: totalN, bias: wBias / totalN, mae: wMAE / totalN, rmse: Math.sqrt(wRMSE2 / totalN) };
+  });
+}
+
+function _mergeScatter(scatters) {
+  const r = { obs: [], model: [], lead: [], lat: [], lon: [] };
+  for (const sc of scatters) {
+    if (!sc || !sc.obs) continue;
+    r.obs.push(...sc.obs); r.model.push(...sc.model); r.lead.push(...sc.lead);
+    r.lat.push(...(sc.lat || sc.obs.map(() => null)));
+    r.lon.push(...(sc.lon || sc.obs.map(() => null)));
+  }
+  return r.obs.length ? r : null;
+}
 
 // ── State ──────────────────────────────────────────────────────────────────────
 const _datasets = {};          // { arome: {...}, ifs: {...}, aifs: {...} }
@@ -95,16 +157,14 @@ function _refData() {
 function _populateSourceSel() {
   const sel = document.getElementById("src-sel");
   sel.innerHTML = "";
-  const sources = Object.keys(_refData().stats || {});
-  sources.forEach((src) => {
+  _FIXED_SOURCES.forEach((src) => {
     const opt = document.createElement("option");
     opt.value = src;
     opt.textContent = SOURCE_LABELS[src] || src;
     sel.appendChild(opt);
   });
-  const preferred = sources.includes("svalmiz") ? "svalmiz" : sources[0];
-  sel.value = preferred;
-  _source = preferred || null;
+  sel.value = "_land_all";
+  _source = "_land_all";
 }
 
 function _populateVarSel() {
@@ -115,7 +175,12 @@ function _populateVarSel() {
   for (const m of MODELS) {
     const d = _datasets[m.key];
     if (!d) continue;
-    Object.keys((d.stats || {})[_source] || {}).forEach((v) => varSet.add(v));
+    const _agg = _aggSources();
+    if (_agg) {
+      _agg.forEach((src) => Object.keys((d.stats || {})[src] || {}).forEach((v) => varSet.add(v)));
+    } else {
+      Object.keys((d.stats || {})[_source] || {}).forEach((v) => varSet.add(v));
+    }
   }
   [...varSet].forEach((v) => {
     const opt = document.createElement("option");
@@ -160,7 +225,7 @@ function _wireControls() {
   });
 
   // Scatter model checkboxes
-  ["chk-arome","chk-ifs","chk-aifs"].forEach((id) => {
+  ["chk-arome","chk-ifs","chk-aifs","chk-ifs_exp"].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.addEventListener("change", () => _renderScatter());
   });
@@ -191,13 +256,19 @@ function _render() {
 function _getBuckets(modelKey) {
   const d = _datasets[modelKey];
   if (!d) return null;
-  return ((d.stats[_source] || {})[_var] || {})[_metricsGrp] || null;
+  const agg = _aggSources();
+  if (!agg) return ((d.stats[_source] || {})[_var] || {})[_metricsGrp] || null;
+  const allBkts = agg.map((src) => ((d.stats[src] || {})[_var] || {})[_metricsGrp]).filter(Boolean);
+  return allBkts.length ? _mergeBuckets(allBkts) : null;
 }
 
 function _getScatter(modelKey) {
   const d = _datasets[modelKey];
   if (!d) return null;
-  return (d.scatter[_source] || {})[_var] || null;
+  const agg = _aggSources();
+  if (!agg) return (d.scatter[_source] || {})[_var] || null;
+  const all = agg.map((src) => (d.scatter[src] || {})[_var]).filter(Boolean);
+  return all.length ? _mergeScatter(all) : null;
 }
 
 function _varMeta() {
@@ -335,7 +406,8 @@ function _renderScatter() {
 
   if (!traces.length) { card.style.display = "none"; return; }
 
-  const vMin = Math.min(...allVals), vMax = Math.max(...allVals);
+  let vMin = Infinity, vMax = -Infinity;
+  for (const v of allVals) { if (v < vMin) vMin = v; if (v > vMax) vMax = v; }
   const pad  = (vMax - vMin) * 0.05;
   traces.push({
     type: "scatter", mode: "lines", name: "1:1",
@@ -364,6 +436,7 @@ const _VARIO_WINDOWS = [
 
 function _renderVariogram() {
   const card    = document.getElementById("variogram-card");
+  if (_aggSources()) { card.style.display = "none"; return; }
   const varMeta = _varMeta();
   let anyData   = false;
 
@@ -506,7 +579,7 @@ function _renderMap() {
     }).addTo(_map);
   }
 
-  const scatter  = (d.scatter[_source] || {})[_var];
+  const scatter  = _getScatter(_mapModel);
   const varMeta  = _varMeta();
   const lats     = (scatter || {}).lat || [];
   if (!lats.length || lats.every((v) => v == null)) {
@@ -550,8 +623,8 @@ function _renderMap() {
   let vmin, vmax;
   if (isDivergent) {
     if (_var === "air_temp" || _var === "sea_surface_temp") { vmin = -5; vmax = 5; }
-    else { const a = Math.max(...vals.map(Math.abs)); vmin = -a; vmax = a; }
-  } else { vmin = 0; vmax = Math.max(...vals); }
+    else { let a = 0; for (const v of vals) { const av = Math.abs(v); if (av > a) a = av; } vmin = -a; vmax = a; }
+  } else { vmin = 0; vmax = 0; for (const v of vals) if (v > vmax) vmax = v; }
 
   const markers = pts.map(({ lat, lon, v, n }) => {
     const color = _valToColor(v, vmin, vmax, isDivergent);

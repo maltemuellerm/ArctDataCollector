@@ -64,8 +64,7 @@
             <div class="vrf-group-btns" id="map-model-btns">
               <button class="vrf-grp-btn active" data-model="arome">AROME</button>
               <button class="vrf-grp-btn" data-model="ifs">IFS</button>
-              <button class="vrf-grp-btn" data-model="aifs">AIFS</button>
-            </div>
+              <button class="vrf-grp-btn" data-model="aifs">AIFS</button>              <button class="vrf-grp-btn" data-model="ifs_exp">IFS exp</button>            </div>
           </label>
           <label class="vrf-label">
             Colour by
@@ -97,9 +96,10 @@
         <h2 class="vrf-card-title">Observation vs. model (scatter)</h2>
         <div class="vrf-scatter-controls">
           <span class="vrf-label">Models</span>
-          <label class="vrf-check-label"><input type="checkbox" id="chk-arome" checked> AROME</label>
-          <label class="vrf-check-label"><input type="checkbox" id="chk-ifs"   checked> IFS</label>
-          <label class="vrf-check-label"><input type="checkbox" id="chk-aifs"  checked> AIFS</label>
+          <label class="vrf-check-label"><input type="checkbox" id="chk-arome"   checked> AROME</label>
+          <label class="vrf-check-label"><input type="checkbox" id="chk-ifs"     checked> IFS</label>
+          <label class="vrf-check-label"><input type="checkbox" id="chk-aifs"    checked> AIFS</label>
+          <label class="vrf-check-label"><input type="checkbox" id="chk-ifs_exp" checked> IFS exp</label>
         </div>
         <div id="scatter-plot" class="vrf-plot vrf-scatter-plot"></div>
       </section>
@@ -122,10 +122,13 @@
           (max 0.5&deg; distance accepted).
           <strong>AROME&nbsp;Arctic 2.5&nbsp;km</strong>
           (00&nbsp;Z and 12&nbsp;Z, hourly steps, 66&nbsp;h),
-          <strong>IFS&nbsp;HRES 0.25&deg;</strong>
+          <strong>IFS&nbsp;HRES 0.1&deg;</strong>
           (00&nbsp;Z and 12&nbsp;Z, hourly steps, 72&nbsp;h),
-          <strong>AIFS 0.25&deg;</strong>
-          (00&nbsp;Z and 12&nbsp;Z, 6-hourly steps, 72&nbsp;h).
+          <strong>AIFS 0.1&deg;</strong>
+          (00&nbsp;Z and 12&nbsp;Z, 6-hourly steps, 72&nbsp;h),
+          <strong>IFS experimental 0.1&deg;</strong>
+          (00&nbsp;Z and 12&nbsp;Z, hourly steps, 72&nbsp;h, expver&nbsp;80).
+          ECMWF models downloaded on 0.1&deg; regular grid (closest to the IFS native O1280 &asymp;&nbsp;9&nbsp;km resolution).
           BIAS&nbsp;= mean(model&minus;obs) — positive means model too high.
           MAE&nbsp;= mean absolute error.
           RMSE&nbsp;= root-mean-square error.
