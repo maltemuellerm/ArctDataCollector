@@ -261,10 +261,23 @@ async function renderArctsumDetail(buoy) {
   const z = dCols.map((col) => _num(tempRows, col));
   const yLabels = dCols.map((c) => parseFloat(c.slice(1)));
 
+  // Colorscale with a distinctive bright-cyan band for the near-freezing range
+  // (-3 to 0 °C). With zmin=-25, zmax=5 (range=30):
+  //   -3°C → position 22/30 ≈ 0.733
+  //    0°C → position 25/30 ≈ 0.833
   const ARCTSUM_COLORSCALE = [
-    [0.0,  "#053061"], [0.25, "#2166ac"], [0.45, "#92c5de"],
-    [0.5,  "#f7f7f7"],
-    [0.55, "#fddbc7"], [0.75, "#d6604d"], [1.0,  "#67001f"],
+    [0.000, "#053061"],  //  -25°C  deep blue
+    [0.267, "#2166ac"],  //  -17°C
+    [0.467, "#4393c3"],  //  -11°C
+    [0.633, "#74add1"],  //   -6°C  pale blue
+    [0.700, "#d1e5f0"],  //   -4°C  very pale (approaching near-freeze)
+    [0.733, "#00b4d8"],  //   -3°C  ← BRIGHT CYAN — near-freezing zone starts
+    [0.783, "#0096c7"],  //  -1.5°C saturated cyan
+    [0.817, "#48cae4"],  //  -0.5°C lighter cyan
+    [0.833, "#caf0f8"],  //    0°C  very light cyan — freezing point
+    [0.867, "#fddbc7"],  //   +1°C  warm orange
+    [0.933, "#d6604d"],  //   +3°C  orange-red
+    [1.000, "#67001f"],  //   +5°C  dark red
   ];
 
   const traces = [
@@ -305,9 +318,25 @@ async function renderArctsumDetail(buoy) {
     xaxis3: { matches: "x4", showticklabels: false, showgrid: true, gridcolor: "#eee" },
     xaxis4: { title: "Date (UTC)", showgrid: true, gridcolor: "#eee" },
     yaxis2: { title: "Temp (\u00b0C)",  domain: [0.38, 0.50],
-              zeroline: true, zerolinecolor: "#aaa", showgrid: true, gridcolor: "#eee" },
+              zeroline: true, zerolinecolor: "#00b4d8", zerolinewidth: 1.5,
+              showgrid: true, gridcolor: "#eee" },
     yaxis3: { title: "Hs (m)",        domain: [0.21, 0.33], showgrid: true, gridcolor: "#eee", zeroline: false },
     yaxis4: { title: "T\u2080\u2082 (s)", domain: [0.00, 0.15], showgrid: true, gridcolor: "#eee", zeroline: false },
+    // Highlight the near-freezing band (-3 to 0 °C) in the temperature panel
+    shapes: [
+      { type: "rect", xref: "paper", yref: "y2",
+        x0: 0, x1: 1, y0: -3, y1: 0,
+        fillcolor: "rgba(0, 180, 216, 0.10)", line: { width: 0 }, layer: "below" },
+      { type: "line", xref: "paper", yref: "y2",
+        x0: 0, x1: 1, y0: -3, y1: -3,
+        line: { color: "#00b4d8", width: 1, dash: "dash" } },
+    ],
+    annotations: [
+      { xref: "paper", yref: "y2", x: 1.01, y: -1.5,
+        xanchor: "left", yanchor: "middle",
+        text: "freez.<br>zone", font: { size: 9, color: "#0096c7" },
+        showarrow: false },
+    ],
     margin: { t: 15, r: 90, b: 55, l: 90 },
     legend: { orientation: "h", y: -0.18, font: { size: 12 } },
     hovermode: "x unified",

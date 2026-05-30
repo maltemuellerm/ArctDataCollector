@@ -5,6 +5,7 @@ Downloads a single field (2m temperature, analysis, one grid point area)
 to verify that credentials work and the MARS API is reachable.
 Also probes the experimental IFS run archived under expver "80"
 (typically class "rd" for Research & Development).
+Also probes AIFS experimental (class=ai, stream=enfo, expver=105, model=aifs-ens).
 Files are deleted after successful downloads.
 """
 import sys
@@ -16,6 +17,7 @@ def _try_request(mars, request: dict, label: str) -> bool:
     """Execute a MARS request and return True on success."""
     target = Path(tempfile.mktemp(suffix=".nc"))
     print(f"\n[{label}] Target file: {target}")
+    print(f"[{label}] Request: {request}")
     try:
         mars.execute(request, str(target))
     except Exception as exc:
@@ -34,7 +36,7 @@ def _try_request(mars, request: dict, label: str) -> bool:
         return False
 
 
-# Common parameters shared by all test requests.
+# Common parameters shared by IFS-family test requests (analysis, oper stream).
 _BASE = {
     "stream"  : "oper",
     "type"    : "an",           # analysis (no lead time needed)
@@ -48,11 +50,64 @@ _BASE = {
     "format"  : "netcdf",
 }
 
-# Test cases: (label, class, expver)
+# Test cases for IFS family: (label, class, expver)
 _TESTS = [
-    ("Operational IFS (od / expver=1)",          "od", "1"),
+    ("Operational IFS (od / expver=1)",            "od", "1"),
     ("Experimental IFS rd class (rd / expver=80)", "rd", "80"),
     ("Experimental IFS od class (od / expver=80)", "od", "80"),
+]
+
+# AIFS experimental uses a completely different stream/type/class.
+# class=ai, stream=enfo, type=cf, expver=105, model=aifs-ens
+# Minimal request: step 0 only, 1°×1° box, single date known to be in archive.
+_AIFS_EXP_REQUESTS = [
+    ("AIFS-exp class=ai stream=enfo expver=105", {
+        "class"   : "ai",
+        "stream"  : "enfo",
+        "type"    : "cf",
+        "expver"  : "105",
+        "model"   : "aifs-ens",
+        "date"    : "2026-05-01",
+        "time"    : "00:00:00",
+        "step"    : "0",
+        "levtype" : "sfc",
+        "param"   : "167",
+        "area"    : "80/10/79/11",
+        "grid"    : "1.0/1.0",
+        "format"  : "netcdf",
+    }),
+    # Fallback: try expver=0105 (zero-padded form ECMWF sometimes requires)
+    ("AIFS-exp class=ai stream=enfo expver=0105", {
+        "class"   : "ai",
+        "stream"  : "enfo",
+        "type"    : "cf",
+        "expver"  : "0105",
+        "model"   : "aifs-ens",
+        "date"    : "2026-05-01",
+        "time"    : "00:00:00",
+        "step"    : "0",
+        "levtype" : "sfc",
+        "param"   : "167",
+        "area"    : "80/10/79/11",
+        "grid"    : "1.0/1.0",
+        "format"  : "netcdf",
+    }),
+    # Also try with stream=oper in case enfo is wrong
+    ("AIFS-exp class=ai stream=oper expver=0105", {
+        "class"   : "ai",
+        "stream"  : "oper",
+        "type"    : "fc",
+        "expver"  : "0105",
+        "model"   : "aifs-ens",
+        "date"    : "2026-05-01",
+        "time"    : "00:00:00",
+        "step"    : "0",
+        "levtype" : "sfc",
+        "param"   : "167",
+        "area"    : "80/10/79/11",
+        "grid"    : "1.0/1.0",
+        "format"  : "netcdf",
+    }),
 ]
 
 
@@ -66,12 +121,24 @@ def main() -> int:
     mars = ECMWFService("mars", verbose=True)
 
     results: dict[str, bool] = {}
+
+    # --- IFS family tests ---
     for label, cls, expver in _TESTS:
         print(f"\n{'='*60}")
         print(f"Testing: {label}")
         print(f"{'='*60}")
         req = {**_BASE, "class": cls, "expver": expver}
         results[label] = _try_request(mars, req, label)
+
+    # --- AIFS experimental tests ---
+    for label, req in _AIFS_EXP_REQUESTS:
+        print(f"\n{'='*60}")
+        print(f"Testing: {label}")
+        print(f"{'='*60}")
+        results[label] = _try_request(mars, req, label)
+        if results[label]:
+            print(f"  *** This variant works — update compute_ecmwf_verification.py accordingly ***")
+            break  # stop on first success
 
     print(f"\n{'='*60}")
     print("SUMMARY")

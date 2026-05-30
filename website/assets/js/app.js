@@ -246,16 +246,18 @@ const _VRF_URLS = {
 };
 const _vrf = {};
 let   _vrfLoadStarted = false;
+let   _vrfLoadPromise  = null;
 
 async function _loadVrfData() {
   if (_vrfLoadStarted) return;
   _vrfLoadStarted = true;
-  await Promise.allSettled(Object.entries(_VRF_URLS).map(async ([key, url]) => {
+  _vrfLoadPromise = Promise.allSettled(Object.entries(_VRF_URLS).map(async ([key, url]) => {
     try {
       const resp = await fetch(url);
       if (resp.ok) _vrf[key] = await resp.json();
     } catch (e) { /* VRF unavailable – model overlays won't show */ }
   }));
+  await _vrfLoadPromise;
 }
 
 const _VRF_MODEL_CFG = [
@@ -277,16 +279,8 @@ async function _renderModelForecast(item, filtered) {
 
   if (!_vrfLoadStarted) _loadVrfData();
 
-  // Wait up to 6 s for all timeseries files to load (they are small, ~5–7 MB each).
-  const _VRF_KEYS = Object.keys(_VRF_URLS);
-  let waited = 0;
-  while (waited < 6000) {
-    const loaded = _VRF_KEYS.filter(k => _vrf[k]);
-    if (loaded.length === _VRF_KEYS.length) break;
-    if (loaded.length > 0 && waited >= 4000) break;  // give up on unavailable models
-    await new Promise(r => setTimeout(r, 300));
-    waited += 300;
-  }
+  // Wait for all timeseries files to load (or up to 10 s if server is slow / unavailable).
+  if (_vrfLoadPromise) await Promise.race([_vrfLoadPromise, new Promise(r => setTimeout(r, 10000))]);
   if (!Object.keys(_vrf).length) return;
 
   const source  = item.type === "ship" ? "ships" : item.type;

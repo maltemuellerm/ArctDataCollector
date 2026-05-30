@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SvalMIZ-26 Analysis — Arctic Observations</title>
+    <link rel="stylesheet" href="assets/css/styles.css" />
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-inner">
+        <h1>Arctic Observations</h1>
+        <p>Arctic ship tracks, ice buoys &amp; NWP verification</p>
+        <nav class="site-nav">
+          <a href="index.html">Map &amp; Explorer</a>
+          <a href="verification.html">NWP Verification</a>
+          <a href="download.html">Download</a>
+          <a href="svalmiz_analysis.html" class="active">SvalMIZ Analysis</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="layout">
+
+      <p id="status" class="status-msg">Loading SvalMIZ-26 buoy data&hellip;</p>
+
+      <!-- Campaign overview / method notes -->
+      <section class="card svm-info-card" id="method-card" style="display:none">
+        <h2 class="svm-card-title">SvalMIZ-26 Campaign &mdash; Ensemble Analysis</h2>
+        <p class="svm-method-text">
+          Ensemble statistics across all 18 thermistor-string buoys deployed in the Svalbard
+          marginal ice zone (April 2026). Shaded bands show <strong>&plusmn;1&thinsp;&sigma;</strong>
+          across the buoy array at each hour.
+        </p>
+        <div class="svm-method-grid">
+          <div class="svm-method-item">
+            <span class="svm-method-label">Ice thickness (start)</span>
+            <span class="svm-method-value">&asymp;&thinsp;0.50&thinsp;m (all buoys)</span>
+          </div>
+          <div class="svm-method-item">
+            <span class="svm-method-label">Snow layer</span>
+            <span class="svm-method-value">10&thinsp;cm assumed (skin&nbsp;T at snow surface) &middot; k<sub>snow</sub>&thinsp;=&thinsp;0.31&thinsp;W&thinsp;m<sup>&minus;1</sup>&thinsp;K<sup>&minus;1</sup></span>
+          </div>
+          <div class="svm-method-item">
+            <span class="svm-method-label">In-ice sensors used</span>
+            <span class="svm-method-value">z&thinsp;=&thinsp;0.00&ndash;0.48&thinsp;m (z&thinsp;=&thinsp;0 is ice surface)</span>
+          </div>
+          <div class="svm-method-item">
+            <span class="svm-method-label">Conductive flux</span>
+            <span class="svm-method-value">
+              F&thinsp;=&thinsp;k<sub>ice</sub>&thinsp;&times;&thinsp;dT/dz
+              &nbsp;&middot;&nbsp; k<sub>ice</sub>&thinsp;=&thinsp;2.1&thinsp;W&thinsp;m<sup>&minus;1</sup>&thinsp;K<sup>&minus;1</sup>
+              &nbsp;&middot;&nbsp; linear fit through in-ice sensors
+              &nbsp;&middot;&nbsp; positive&thinsp;=&thinsp;upward (ocean&thinsp;&rarr;&thinsp;atmosphere)
+              &nbsp;&middot;&nbsp; scale fixed &minus;50 to +50&thinsp;W&thinsp;m<sup>&minus;2</sup>
+            </span>
+          </div>
+          <div class="svm-method-item">
+            <span class="svm-method-label">Sensors excluded</span>
+            <span class="svm-method-value">z&thinsp;&lt;&thinsp;0 (snow / air sensors above ice surface)</span>
+          </div>
+          <div class="svm-method-item">
+            <span class="svm-method-label">Stefan law model</span>
+            <span class="svm-method-value">
+              dh/dt&thinsp;=&thinsp;max(T<sub>f</sub>&minus;T<sub>air</sub>,&thinsp;0)&thinsp;/&thinsp;(&rho;<sub>ice</sub>&thinsp;L&thinsp;(h/k<sub>ice</sub>&thinsp;+&thinsp;h<sub>snow</sub>/k<sub>snow</sub>))
+              &nbsp;&middot;&nbsp; forward Euler, hourly
+              &nbsp;&middot;&nbsp; T<sub>f</sub>&thinsp;=&thinsp;&minus;1.8&thinsp;&deg;C
+              &nbsp;&middot;&nbsp; driven by ensemble mean T<sub>air</sub>
+              &nbsp;&middot;&nbsp; growth only (no melt)
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Air & Skin Temperature ensemble -->
+      <section class="card" id="temp-card" style="display:none">
+        <div class="svm-plot-header">
+          <h2 class="svm-card-title">Air &amp; Skin Temperature &mdash; Ensemble Mean &plusmn; 1&sigma;</h2>
+          <span class="svm-n-label" id="temp-n-label"></span>
+        </div>
+        <div id="temp-plot" style="width:100%; height:380px; display:block;"></div>
+      </section>
+
+      <!-- Conductive heat flux ensemble -->
+      <section class="card" id="flux-card" style="display:none">
+        <div class="svm-plot-header">
+          <h2 class="svm-card-title">Conductive Heat Flux Through Sea Ice &mdash; Ensemble Mean &plusmn; 1&sigma;</h2>
+          <span class="svm-n-label" id="flux-n-label"></span>
+        </div>
+        <div id="flux-plot" style="width:100%; height:320px; display:block;"></div>
+      </section>
+
+      <!-- Stefan law sea-ice growth model -->
+      <section class="card" id="stefan-card" style="display:none">
+        <div class="svm-plot-header">
+          <h2 class="svm-card-title">Sea-Ice Growth &mdash; Modified Stefan Law (ensemble mean T<sub>air</sub> forcing)</h2>
+          <span class="svm-n-label">h<sub>ice,0</sub>&thinsp;=&thinsp;0.50&thinsp;m &middot; h<sub>snow</sub>&thinsp;=&thinsp;0.10&thinsp;m &middot; growth only &middot; red shading: T<sub>air</sub>&thinsp;&gt;&thinsp;T<sub>f</sub></span>
+        </div>
+        <div id="stefan-plot" style="width:100%; height:300px; display:block;"></div>
+      </section>
+
+    </main>
+
+    <!-- inline styles specific to this page -->
+    <style>
+      .svm-info-card { padding: 1.1rem 1.4rem 1.2rem; }
+      .svm-card-title {
+        font-size: 1rem; font-weight: 700;
+        color: var(--accent); margin-bottom: .5rem;
+      }
+      .svm-method-text {
+        font-size: .88rem; line-height: 1.55; color: var(--text);
+        margin-bottom: .85rem;
+      }
+      .svm-method-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+        gap: .45rem .9rem;
+      }
+      .svm-method-item { display: flex; flex-direction: column; }
+      .svm-method-label {
+        font-size: .75rem; font-weight: 600; color: var(--muted);
+        text-transform: uppercase; letter-spacing: .04em;
+      }
+      .svm-method-value { font-size: .85rem; color: var(--text); }
+      .svm-plot-header {
+        display: flex; align-items: baseline; gap: .75rem;
+        padding: .75rem 1.1rem .4rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .svm-n-label { font-size: .8rem; color: var(--muted); }
+
+      /* Allow Plotly SVG to fill the card without clipping */
+      #temp-card, #flux-card, #stefan-card { overflow: visible; }
+
+      /* Ensure plot divs fill the full card width */
+      #temp-plot, #flux-plot, #stefan-plot {
+        width: 100% !important;
+        min-width: 0;
+      }
+    </style>
+
+    <script src="assets/js/csv-loader.js"></script>
+    <script src="assets/js/svalmiz_analysis.js"></script>
+  </body>
+</html>

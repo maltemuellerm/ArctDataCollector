@@ -119,6 +119,28 @@ else
   echo "  No Offshore CSVs found, skipping."
 fi
 
+JSON_AROME_SRC="${LOCAL_CSV_DIR}/arome"
+JSON_AROME_DST="${WEBSITE_DIR}/data/arome"
+if ls "${JSON_AROME_SRC}"/*.json 1>/dev/null 2>&1; then
+  echo "Syncing AROME verification JSON into website/data/arome/ ..."
+  mkdir -p "${JSON_AROME_DST}"
+  cp "${JSON_AROME_SRC}"/*.json "${JSON_AROME_DST}/"
+  echo "  $(ls "${JSON_AROME_DST}"/*.json | wc -l) AROME JSON files ready."
+else
+  echo "  No AROME verification JSONs found, skipping."
+fi
+
+JSON_ECMWF_SRC="${LOCAL_CSV_DIR}/ecmwf"
+JSON_ECMWF_DST="${WEBSITE_DIR}/data/ecmwf"
+if ls "${JSON_ECMWF_SRC}"/*.json 1>/dev/null 2>&1; then
+  echo "Syncing ECMWF verification + timeseries JSON into website/data/ecmwf/ ..."
+  mkdir -p "${JSON_ECMWF_DST}"
+  cp "${JSON_ECMWF_SRC}"/*.json "${JSON_ECMWF_DST}/"
+  echo "  $(ls "${JSON_ECMWF_DST}"/*.json | wc -l) ECMWF JSON files ready."
+else
+  echo "  No ECMWF verification JSONs found, skipping."
+fi
+
 echo "Starting local server on http://localhost:${PORT}"
 echo "Press Ctrl-C to stop."
 cd "${WEBSITE_DIR}"

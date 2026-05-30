@@ -14,9 +14,10 @@ const ECMWF_BASE = IS_LOCAL
   : "http://148.230.70.161/data/ecmwf";
 
 const MODEL_META = {
-  ifs:     { label: "IFS HRES",         shortLabel: "IFS",     steps: "hourly 0–72 h",   res: "0.1°" },
-  aifs:    { label: "AIFS",             shortLabel: "AIFS",    steps: "6-hourly 0–72 h", res: "0.1°" },
-  ifs_exp: { label: "IFS experimental", shortLabel: "IFS exp", steps: "hourly 0–72 h",   res: "0.1°" },
+  ifs:      { label: "IFS HRES",              shortLabel: "IFS",      steps: "hourly 0–72 h",   res: "0.1°" },
+  aifs:     { label: "AIFS",                  shortLabel: "AIFS",     steps: "6-hourly 0–72 h", res: "0.1°" },
+  ifs_exp:  { label: "IFS experimental",      shortLabel: "IFS exp",  steps: "hourly 0–72 h",   res: "0.1°" },
+  aifs_exp: { label: "AIFS experimental",     shortLabel: "AIFS exp", steps: "6-hourly 0–72 h", res: "0.1°" },
 };
 
 const GROUP_COLORS = [

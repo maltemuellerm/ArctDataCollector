@@ -1,5 +1,5 @@
 [Unit]
-Description=Compute ECMWF IFS/AIFS/IFS-experimental Arctic verification statistics
+Description=Compute ECMWF IFS/AIFS/IFS-exp/AIFS-exp Arctic verification statistics
 After=network-online.target
 Wants=network-online.target
 

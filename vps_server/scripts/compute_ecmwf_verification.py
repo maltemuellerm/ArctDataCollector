@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Compute ECMWF NWP verification statistics against Arctic observations.
 
-Models: IFS HRES (expver=1), AIFS (expver=1), IFS experimental (expver=80).
+Models: IFS HRES (expver=1), AIFS (expver=1), IFS experimental (expver=80),
+        AIFS experimental (expver=0105).
 
 For each model and each 00Z/12Z run in the last --days days:
   1. Downloads a NetCDF file from MARS (ECMWFService) for the Arctic domain.
@@ -16,7 +17,7 @@ The downloaded NetCDF file is deleted immediately after processing each run.
 
 Usage
 -----
-  python3 compute_ecmwf_verification.py [--model ifs|aifs|ifs_exp|both] [--days 30]
+  python3 compute_ecmwf_verification.py [--model ifs|aifs|ifs_exp|aifs_exp|both] [--days 30]
                                          [--obs-dir PATH] [--out-dir PATH]
                                          [--force] [--log-level INFO]
 
@@ -32,6 +33,12 @@ Update _MODELS["aifs"] below if requests fail.
 NOTE on IFS experimental (ifs_exp)
 -----------------------------------
 Archived under class=od, expver=80.  Access confirmed 2026-05-01.
+
+NOTE on AIFS experimental (aifs_exp)
+-------------------------------------
+class=ai, stream=enfo, type=cf (control forecast), expver=105, model=aifs-ens.
+6-hourly steps 0–72 h (full run goes to 360 h; capped at 72 for consistency).
+Confirmed working 2026-05-06.
 """
 
 import argparse
@@ -39,6 +46,7 @@ import csv
 import json
 import logging
 import math
+import socket
 import sys
 import tempfile
 from collections import defaultdict
@@ -89,6 +97,21 @@ _MODELS: dict[str, dict] = {
         "run_hours":  (0, 12),
         "max_lead_h": 72,
         "time_tol_s": 5400,    # ±90 min
+    },
+    "aifs_exp": {
+        "label":      "AIFS experimental",
+        # class=ai, stream=enfo, type=cf (control forecast), expver=105, model=aifs-ens
+        # Confirmed working MARS request 2026-05-06.
+        "mars_class": "ai",
+        "stream":     "enfo",
+        "expver":     "105",
+        "type":       "cf",
+        "mars_model": "aifs-ens",   # passed as "model" keyword to MARS
+        # 6-hourly steps 0–72 h (cf runs to 360 h; we cap at 72 for consistency)
+        "steps":      "0/6/12/18/24/30/36/42/48/54/60/66/72",
+        "run_hours":  (0, 12),
+        "max_lead_h": 72,
+        "time_tol_s": 10800,   # ±3 h (wider tolerance for 6-hourly steps)
     },
 }
 
@@ -307,7 +330,11 @@ def _mars_fetch(run_time: datetime, model_cfg: dict, target_path: Path) -> bool:
         logger.error("ecmwf-api-client not installed. Run: pip install ecmwf-api-client")
         return False
 
-    service = ECMWFService("mars")
+    service = ECMWFService("mars", verbose=True)
+    # Apply a 30-min socket timeout so hung MARS requests don't block forever.
+    # (ECMWFService does not expose a timeout parameter directly.)
+    _prev_timeout = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(1800)
     request = {
         "class":   model_cfg["mars_class"],
         "stream":  model_cfg["stream"],
@@ -322,6 +349,8 @@ def _mars_fetch(run_time: datetime, model_cfg: dict, target_path: Path) -> bool:
         "grid":    _GRID,
         "format":  "netcdf",
     }
+    if "mars_model" in model_cfg:
+        request["model"] = model_cfg["mars_model"]
     logger.info(
         "MARS request: %s %sZ (steps: %s…)",
         model_cfg["label"],
@@ -336,6 +365,8 @@ def _mars_fetch(run_time: datetime, model_cfg: dict, target_path: Path) -> bool:
             model_cfg["label"], run_time.strftime("%Y%m%dT%HZ"), exc,
         )
         return False
+    finally:
+        socket.setdefaulttimeout(_prev_timeout)
     return target_path.exists() and target_path.stat().st_size > 0
 
 
@@ -825,8 +856,15 @@ def _parse_args() -> argparse.Namespace:
         description="Compute ECMWF IFS / AIFS Arctic verification statistics."
     )
     p.add_argument(
-        "--model", default="both", choices=["ifs", "aifs", "ifs_exp", "both"],
+        "--model", default="both", choices=["ifs", "aifs", "ifs_exp", "aifs_exp", "both"],
         help="Which model(s) to process (default: both = all models)",
+    )
+    p.add_argument(
+        "--skip-model", action="append", default=[],
+        choices=["ifs", "aifs", "ifs_exp", "aifs_exp"],
+        metavar="MODEL",
+        dest="skip_models",
+        help="Skip a model (can be repeated, e.g. --skip-model aifs_exp --skip-model ifs_exp)",
     )
     p.add_argument(
         "--days", type=int, default=30,
@@ -883,6 +921,11 @@ def main() -> None:
     logger.info("Obs max time: %s", obs_max_time)
 
     models_to_run = list(_MODELS.keys()) if args.model == "both" else [args.model]
+    if args.skip_models:
+        skipped = [m for m in args.skip_models if m in models_to_run]
+        if skipped:
+            logger.info("Skipping model(s) via --skip-model: %s", ", ".join(skipped))
+        models_to_run = [m for m in models_to_run if m not in args.skip_models]
     for model_name in models_to_run:
         logger.info("=== Processing model: %s ===", _MODELS[model_name]["label"])
         _run_model(

@@ -75,19 +75,22 @@ ArctDataCollector/
 │   └── systemd/                  # Service + timer units for each source
 └── website/
     ├── index.html                # Main map & explorer page
-    ├── verification.html         # NWP model verification page
+    ├── verification.html         # NWP model verification page (AROME Arctic)
+    ├── verification_ecmwf.html   # NWP model verification page (IFS HRES + AIFS)
     ├── download.html             # Data download page
+    ├── svalmiz_analysis.html     # SvalMIZ-26 campaign in-depth analysis
     ├── assets/
     │   ├── css/
     │   │   ├── styles.css
     │   │   ├── download.css
     │   │   └── verification.css
     │   └── js/
-    │       ├── app.js            # Main controller: time-range slider, card management
-    │       ├── csv-loader.js     # CSV parser + URL routing (local vs. production)
-    │       ├── map.js            # Leaflet Arctic polar-stereo map
-    │       ├── plot.js           # Plotly multi-panel detail plots
-    │       └── verification.js   # NWP verification charts and map
+    │       ├── app.js                 # Main controller: time-range slider, card management
+    │       ├── csv-loader.js          # CSV parser + URL routing (local vs. production)
+    │       ├── map.js                 # Leaflet Arctic polar-stereo map
+    │       ├── plot.js                # Plotly multi-panel detail plots
+    │       ├── svalmiz_analysis.js    # SvalMIZ-26 campaign ensemble analysis
+    │       └── verification.js        # NWP verification charts and map
     └── data/                     # Populated at runtime by dev_serve.sh (gitignored)
 ```
 
@@ -262,6 +265,11 @@ The frontend automatically detects `localhost` / `127.0.0.1` and reads data from
   - **ArctSum / SvalMIZ buoys**: temperature string heatmap + air/skin temp, wave height, wave period
   - **IABP buoys**: pressure + air temperature time-series
 - **NWP Verification page** — unified comparison of AROME Arctic, IFS HRES, and AIFS against surface observations
+- **SvalMIZ-26 Analysis page** — in-depth campaign-level analysis across all 18 SvalMIZ-26 buoys:
+  - Ensemble mean ± 1σ time-series for **air temperature** and **skin temperature**
+  - **Conductive heat flux** through sea ice ($F = k_\text{ice} \times dT/dz$) from linear regression through in-ice thermistor sensors (z = 0.00–0.48 m); scale −10 to +30 W m⁻²; upward/downward labelled
+  - **Modified Stefan law sea-ice growth model** driven by ensemble mean air temperature (initial ice 0.50 m, snow 0.10 m, $k_\text{snow}$ = 0.31 W m⁻¹ K⁻¹); red shading marks periods where growth is paused ($T_\text{air} > T_f$)
+- **Near-freezing colorscale** — temperature heatmaps for ArctSum/SvalMIZ buoys use a custom colorscale with a distinctive bright-cyan band at −3 to 0 °C to highlight the sea-water freezing zone
 
 ---
 
