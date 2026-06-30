@@ -13,22 +13,33 @@
 const IS_LOCAL = location.hostname === "localhost"
               || location.hostname === "127.0.0.1"
               || location.protocol === "file:";
+const IS_OMB   = location.hostname.includes("openmetbuoy-arctic.com");
 
-const BASE = IS_LOCAL ? "" : "http://148.230.70.161";
+// Route data requests through the correct base so HTTPS pages never hit HTTP.
+function _vrfBase(path) {
+  if (IS_LOCAL) return path;
+  if (IS_OMB)   return "/arct-data/" + path;
+  return "http://148.230.70.161/" + path;
+}
 
 const MODELS = [
-  { key: "arome",   label: "AROME",            url: `${BASE}/data/arome/verification.json` },
-  { key: "ifs",     label: "IFS HRES",          url: `${BASE}/data/ecmwf/verification_ifs.json` },
-  { key: "aifs",   label: "AIFS",              url: `${BASE}/data/ecmwf/verification_aifs.json` },
-  { key: "ifs_exp", label: "IFS experimental",  url: `${BASE}/data/ecmwf/verification_ifs_exp.json` },
+  { key: "arome",   label: "AROME Arctic",  url: _vrfBase("data/arome/verification.json") },
+  { key: "ifs",     label: "IFS HRES",      url: _vrfBase("data/ecmwf/verification_ifs.json") },
+  { key: "aifs",   label: "AIFS",          url: _vrfBase("data/ecmwf/verification_aifs.json") },
 ];
+
+// Build URL for a given model and time period suffix ("" = all time)
+function _modelUrl(model, period) {
+  if (!period || period === "all") return model.url;
+  if (model.key === "arome") return _vrfBase(`data/arome/verification_${period}.json`);
+  return _vrfBase(`data/ecmwf/verification_${model.key}_${period}.json`);
+}
 
 // Line styles per model
 const MODEL_STYLE = {
   arome:   { color: "#2e5fa3" },
   ifs:     { color: "#c44b27" },
   aifs:    { color: "#2dab6f" },
-  ifs_exp: { color: "#8b5cf6" },
 };
 
 // ── Palette for scatter lead-time groups ──────────────────────────────────────
@@ -114,28 +125,50 @@ let _var    = null;
 const _metricsGrp = "6h";
 const _scatterGrp = "24h";
 let _lead        = "all";
+let _period      = "all";    // "all" | "7d" | "14d" | "30d" | "60d"
 let _mapModel    = "arome";
 let _mapMetric   = "bias";
 let _map         = null;
 let _dotLayer    = null;
 let _domainLayer = null;
 
+// ── Dataset loading ────────────────────────────────────────────────────────────
+async function _loadDatasets(period) {
+  // Clear old data
+  for (const m of MODELS) delete _datasets[m.key];
+
+  await Promise.allSettled(
+    MODELS.map((m) => {
+      const url = _modelUrl(m, period);
+      return fetch(url)
+        .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+        .then((d) => { _datasets[m.key] = d; })
+        .catch((err) => {
+          console.error(`[verification] Failed to load ${m.label} (${url}):`, err);
+          // Period-specific file missing — fall back to main file if different
+          if (url !== m.url) {
+            return fetch(m.url)
+              .then((r) => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+              .then((d) => { _datasets[m.key] = d; })
+              .catch((err2) => { console.error(`[verification] Fallback also failed for ${m.label}:`, err2); });
+          }
+        });
+    })
+  );
+}
+
 // ── Init ───────────────────────────────────────────────────────────────────────
 async function init() {
   const statusEl = document.getElementById("vrf-status");
   statusEl.textContent = "Loading verification data\u2026";
 
-  await Promise.allSettled(
-    MODELS.map((m) =>
-      fetch(m.url)
-        .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-        .then((d) => { _datasets[m.key] = d; })
-    )
-  );
+  await _loadDatasets(_period);
 
   const loaded = MODELS.filter((m) => _datasets[m.key]);
   if (!loaded.length) {
-    statusEl.textContent = "No verification data available. Run the verification scripts on the server.";
+    const tried = MODELS.map((m) => _modelUrl(m, _period)).join(", ");
+    statusEl.textContent = `No verification data available. Tried: ${tried}`;
+    console.error("[verification] No datasets loaded. Tried URLs:", tried);
     return;
   }
   const failed = MODELS.filter((m) => !_datasets[m.key]).map((m) => m.label);
@@ -225,12 +258,148 @@ function _wireControls() {
   });
 
   // Scatter model checkboxes
-  ["chk-arome","chk-ifs","chk-aifs","chk-ifs_exp"].forEach((id) => {
+  ["chk-arome","chk-ifs","chk-aifs"].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.addEventListener("change", () => _renderScatter());
   });
 
+  _wireSlider();
   _populateVarSel();
+}
+
+// ── Period time slider ────────────────────────────────────────────────────────
+// Both handles are free. The slider spans MAX_SLIDER_DAYS days ending today.
+// The selected span (hi - lo days) is mapped to a period key used to load a
+// pre-generated verification JSON (7d / 14d / 30d / 60d / all).
+
+const MAX_SLIDER_DAYS = 90;  // full slider width = 90 days back
+
+function _daysBetween(a, b) {
+  return Math.round((b - a) / 86400000);
+}
+
+function _periodKey(days) {
+  if (days <= 7)  return "7d";
+  if (days <= 14) return "14d";
+  return "all";   // 15–90 days → main 30-day file (verification.json)
+}
+
+function _periodLabel(days) {
+  if (days <= 7)  return "7 days";
+  if (days <= 14) return "14 days";
+  if (days <= 30) return "30 days";
+  return `${days} days`;
+}
+
+let _sliderReloadTimer = null;
+
+function _wireSlider() {
+  const sliderLo    = document.getElementById("vrf-slider-lo");
+  const sliderHi    = document.getElementById("vrf-slider-hi");
+  const sliderFill  = document.getElementById("vrf-slider-fill");
+  const startLabel  = document.getElementById("vrf-slider-start-label");
+  const endLabel    = document.getElementById("vrf-slider-end-label");
+  const rangeLabel  = document.getElementById("vrf-slider-range-label");
+  const periodHint  = document.getElementById("vrf-slider-period-hint");
+  const startInput  = document.getElementById("vrf-date-start-input");
+  const endInput    = document.getElementById("vrf-date-end-input");
+
+  if (!sliderLo) return;
+
+  const today    = new Date(); today.setUTCHours(0,0,0,0);
+  const earliest = new Date(today); earliest.setUTCDate(today.getUTCDate() - MAX_SLIDER_DAYS);
+
+  const totalDays = MAX_SLIDER_DAYS;
+  sliderLo.min = sliderHi.min = 0;
+  sliderLo.max = sliderHi.max = totalDays;
+  sliderHi.value = totalDays;       // default end = today
+  sliderLo.value = totalDays - 30;  // default start = 30 days ago
+
+  const isoEarliest = earliest.toISOString().slice(0,10);
+  const isoToday    = today.toISOString().slice(0,10);
+  if (startInput) { startInput.min = isoEarliest; startInput.max = isoToday; }
+  if (endInput)   { endInput.min   = isoEarliest; endInput.max   = isoToday; endInput.value = isoToday; }
+
+  function idxToDate(idx) {
+    const d = new Date(earliest); d.setUTCDate(earliest.getUTCDate() + idx); return d;
+  }
+
+  function updateFill() {
+    const lo  = parseInt(sliderLo.value);
+    const hi  = parseInt(sliderHi.value);
+    const max = parseInt(sliderLo.max) || 1;
+    sliderFill.style.left  = (lo / max * 100) + "%";
+    sliderFill.style.width = ((hi - lo) / max * 100) + "%";
+  }
+
+  async function applySlider() {
+    let lo = parseInt(sliderLo.value);
+    let hi = parseInt(sliderHi.value);
+    if (lo > hi) { lo = hi; sliderLo.value = lo; }
+
+    const startD = idxToDate(lo);
+    const endD   = idxToDate(hi);
+    const days   = hi - lo;
+    const key    = _periodKey(days);
+
+    startLabel.textContent = startD.toISOString().slice(0,10);
+    endLabel.textContent   = endD.toISOString().slice(0,10);
+    rangeLabel.textContent = `${days} day${days !== 1 ? "s" : ""}`;
+    if (periodHint) periodHint.textContent = _periodLabel(days);
+    if (startInput) startInput.value = startD.toISOString().slice(0,10);
+    if (endInput)   endInput.value   = endD.toISOString().slice(0,10);
+    updateFill();
+
+    if (key === _period) return;  // no reload needed
+    _period = key;
+
+    const statusEl = document.getElementById("vrf-status");
+    statusEl.textContent = "Reloading verification data\u2026";
+    statusEl.style.display = "";
+    await _loadDatasets(_period);
+    statusEl.style.display = "none";
+    _populateVarSel();
+    _render();
+  }
+
+  function onThumbInput() {
+    clearTimeout(_sliderReloadTimer);
+    let lo = parseInt(sliderLo.value);
+    let hi = parseInt(sliderHi.value);
+    if (lo > hi) { lo = hi; sliderLo.value = lo; }
+    const days = hi - lo;
+    rangeLabel.textContent = `${days} day${days !== 1 ? "s" : ""}`;
+    if (periodHint) periodHint.textContent = _periodLabel(days);
+    if (startInput) startInput.value = idxToDate(lo).toISOString().slice(0,10);
+    if (endInput)   endInput.value   = idxToDate(hi).toISOString().slice(0,10);
+    updateFill();
+    _sliderReloadTimer = setTimeout(applySlider, 400);
+  }
+
+  sliderLo.addEventListener("input", onThumbInput);
+  sliderHi.addEventListener("input", onThumbInput);
+
+  if (startInput) {
+    startInput.addEventListener("change", () => {
+      const d   = new Date(startInput.value + "T00:00:00Z");
+      const idx = Math.max(0, Math.min(totalDays, _daysBetween(earliest, d)));
+      sliderLo.value = idx;
+      clearTimeout(_sliderReloadTimer);
+      _sliderReloadTimer = setTimeout(applySlider, 400);
+    });
+  }
+  if (endInput) {
+    endInput.addEventListener("change", () => {
+      const d   = new Date(endInput.value + "T00:00:00Z");
+      const idx = Math.max(0, Math.min(totalDays, _daysBetween(earliest, d)));
+      sliderHi.value = idx;
+      clearTimeout(_sliderReloadTimer);
+      _sliderReloadTimer = setTimeout(applySlider, 400);
+    });
+  }
+
+  // Initial render
+  applySlider();
 }
 
 // ── Main render ───────────────────────────────────────────────────────────────
@@ -243,7 +412,8 @@ function _render() {
       const p = _datasets[m.key].period || {};
       return `${m.label}: ${p.start || "?"}\u2013${p.end || "?"}`;
     }).join("   \u2022   ");
-  document.getElementById("vrf-meta").textContent = `Periods: ${periods}`;
+  const periodDesc = _period === "all" ? "last 30 days" : `last ${_period}`;
+  document.getElementById("vrf-meta").textContent = `Showing ${periodDesc}   \u2014   ${periods}`;
 
   _renderBiasMAE();
   _renderRMSE();

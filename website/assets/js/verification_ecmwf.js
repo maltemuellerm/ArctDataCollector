@@ -9,9 +9,16 @@
 const IS_LOCAL = location.hostname === "localhost"
               || location.hostname === "127.0.0.1"
               || location.protocol === "file:";
-const ECMWF_BASE = IS_LOCAL
-  ? "data/ecmwf"
-  : "http://148.230.70.161/data/ecmwf";
+const IS_OMB   = location.hostname.includes("openmetbuoy-arctic.com");
+
+function _ecmwfBase(path) {
+  if (IS_LOCAL) return "data/ecmwf/" + path;
+  if (IS_OMB)   return "/arct-data/data/ecmwf/" + path;
+  return "http://148.230.70.161/data/ecmwf/" + path;
+}
+
+// Kept for any legacy references
+const ECMWF_BASE = IS_LOCAL ? "data/ecmwf" : (IS_OMB ? "/arct-data/data/ecmwf" : "http://148.230.70.161/data/ecmwf");
 
 const MODEL_META = {
   ifs:      { label: "IFS HRES",              shortLabel: "IFS",      steps: "hourly 0–72 h",   res: "0.1°" },

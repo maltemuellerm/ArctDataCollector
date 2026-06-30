@@ -1,0 +1,15 @@
+[Unit]
+Description=Flask decoder for RockBLOCK Iridium messages
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/opt/decoder
+ExecStart=/opt/decoder_venv/bin/python3 /opt/decoder/main.py
+Restart=always
+Environment=PYTHONUNBUFFERED=1
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

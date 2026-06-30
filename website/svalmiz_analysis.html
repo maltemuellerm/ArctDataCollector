@@ -57,6 +57,16 @@
             </span>
           </div>
           <div class="svm-method-item">
+            <span class="svm-method-label">Surface sensible flux</span>
+            <span class="svm-method-value">
+              H&thinsp;=&thinsp;&rho;&thinsp;c<sub>p</sub>&thinsp;C<sub>H</sub>&thinsp;U&thinsp;(T<sub>skin</sub>&minus;T<sub>air</sub>)
+              &nbsp;&middot;&nbsp; bulk aerodynamic approximation
+              &nbsp;&middot;&nbsp; U&thinsp;=&thinsp;5&thinsp;m&thinsp;s<sup>&minus;1</sup> (assumed)
+              &nbsp;&middot;&nbsp; C<sub>H</sub>&thinsp;=&thinsp;1.5&times;10<sup>&minus;3</sup>
+              &nbsp;&middot;&nbsp; positive&thinsp;=&thinsp;upward (surface&thinsp;&rarr;&thinsp;atmosphere)
+            </span>
+          </div>
+          <div class="svm-method-item">
             <span class="svm-method-label">Sensors excluded</span>
             <span class="svm-method-value">z&thinsp;&lt;&thinsp;0 (snow / air sensors above ice surface)</span>
           </div>
@@ -89,6 +99,15 @@
           <span class="svm-n-label" id="flux-n-label"></span>
         </div>
         <div id="flux-plot" style="width:100%; height:320px; display:block;"></div>
+      </section>
+
+      <!-- Surface sensible heat flux (bulk aerodynamic approximation) -->
+      <section class="card" id="shf-card" style="display:none">
+        <div class="svm-plot-header">
+          <h2 class="svm-card-title">Surface Sensible Heat Flux &mdash; Bulk Aerodynamic Approximation</h2>
+          <span class="svm-n-label" id="shf-n-label"></span>
+        </div>
+        <div id="shf-plot" style="width:100%; height:320px; display:block;"></div>
       </section>
 
       <!-- Stefan law sea-ice growth model -->
@@ -132,10 +151,10 @@
       .svm-n-label { font-size: .8rem; color: var(--muted); }
 
       /* Allow Plotly SVG to fill the card without clipping */
-      #temp-card, #flux-card, #stefan-card { overflow: visible; }
+      #temp-card, #flux-card, #shf-card, #stefan-card { overflow: visible; }
 
       /* Ensure plot divs fill the full card width */
-      #temp-plot, #flux-plot, #stefan-plot {
+      #temp-plot, #flux-plot, #shf-plot, #stefan-plot {
         width: 100% !important;
         min-width: 0;
       }

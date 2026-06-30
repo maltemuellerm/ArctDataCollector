@@ -36,14 +36,33 @@
         <div id="map-container"></div>
         <!-- Time range slider -->
         <div id="time-slider-box">
-          <div class="slider-labels">
-            <span id="slider-start-label"></span>
-            <span id="slider-range-label"></span>
-            <span id="slider-end-label"></span>
+          <div class="slider-toprow">
+            <span class="slider-title">&#128197; Time window</span>
+            <span id="slider-range-label" class="slider-range-badge"></span>
           </div>
-          <div class="dual-slider">
-            <input type="range" id="slider-lo" min="0" max="1" step="1" value="0" />
-            <input type="range" id="slider-hi" min="0" max="1" step="1" value="1" />
+          <div class="slider-date-row">
+            <div class="slider-date-field">
+              <label for="date-start-input" class="slider-date-label">From</label>
+              <input type="date" id="date-start-input" class="slider-date-input" />
+            </div>
+            <span class="slider-date-sep" aria-hidden="true">&#8594;</span>
+            <div class="slider-date-field">
+              <label for="date-end-input" class="slider-date-label">To</label>
+              <input type="date" id="date-end-input" class="slider-date-input" />
+            </div>
+          </div>
+          <div class="dual-slider-wrap" role="group" aria-label="Date range slider">
+            <div class="dual-slider-track">
+              <div class="dual-slider-fill" id="slider-fill"></div>
+            </div>
+            <input type="range" id="slider-lo" min="0" max="1" step="1" value="0"
+                   class="dual-range-input" aria-label="Start date" />
+            <input type="range" id="slider-hi" min="0" max="1" step="1" value="1"
+                   class="dual-range-input" aria-label="End date" />
+          </div>
+          <div class="slider-axis-labels">
+            <span id="slider-start-label"></span>
+            <span id="slider-end-label"></span>
           </div>
         </div>
       </section>

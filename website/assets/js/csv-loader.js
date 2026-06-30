@@ -1,21 +1,31 @@
 const IS_LOCAL = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.protocol === "file:";
-const SHIPS_BASE        = IS_LOCAL ? "data/ships"        : "http://148.230.70.161/data/ships";
-const SIMBA_BASE        = IS_LOCAL ? "data/simba"        : "http://148.230.70.161/data/simba";
-const THERMISTOR_BASE   = IS_LOCAL ? "data/thermistor"   : "http://148.230.70.161/data/thermistor";
-const ARCTSUM_BASE      = IS_LOCAL ? "data/arctsum"      : "http://148.230.70.161/data/arctsum";
-const SVALMIZ_BASE      = IS_LOCAL ? "data/svalmiz"      : "http://148.230.70.161/data/svalmiz";
-const IABP_BASE         = IS_LOCAL ? "data/iabp"         : "http://148.230.70.161/data/iabp";
-const SVALBARD_BASE     = IS_LOCAL ? "data/svalbard"     : "http://148.230.70.161/data/svalbard";
-const NORTH_NORWAY_BASE = IS_LOCAL ? "data/north_norway" : "http://148.230.70.161/data/north_norway";
-const OFFSHORE_BASE     = IS_LOCAL ? "data/offshore"     : "http://148.230.70.161/data/offshore";
-const GREENLAND_BASE    = IS_LOCAL ? "data/greenland"    : "http://148.230.70.161/data/greenland";
-const CANADA_BASE       = IS_LOCAL ? "data/canada"       : "http://148.230.70.161/data/canada";
-const ALASKA_BASE       = IS_LOCAL ? "data/alaska"       : "http://148.230.70.161/data/alaska";
-const RUSSIA_BASE       = IS_LOCAL ? "data/russia"       : "http://148.230.70.161/data/russia";
-const ICELAND_BASE      = IS_LOCAL ? "data/iceland"      : "http://148.230.70.161/data/iceland";
-const FINLAND_BASE      = IS_LOCAL ? "data/finland"      : "http://148.230.70.161/data/finland";
-const SWEDEN_BASE       = IS_LOCAL ? "data/sweden"       : "http://148.230.70.161/data/sweden";
-const NORWAY_BUOYS_BASE = IS_LOCAL ? "data/norway_buoys" : "http://148.230.70.161/data/norway_buoys";
+// When served via the OpenMetBuoy reverse proxy (/arct-data/), route data
+// fetches back through the same origin so the browser never contacts the VPS directly.
+const IS_OMB   = location.hostname.includes("openmetbuoy-arctic.com");
+
+function _base(path) {
+  if (IS_LOCAL) return path;
+  if (IS_OMB)   return "/arct-data/" + path;
+  return "http://148.230.70.161/" + path;
+}
+
+const SHIPS_BASE        = _base("data/ships");
+const SIMBA_BASE        = _base("data/simba");
+const THERMISTOR_BASE   = _base("data/thermistor");
+const ARCTSUM_BASE      = _base("data/arctsum");
+const SVALMIZ_BASE      = _base("data/svalmiz");
+const IABP_BASE         = _base("data/iabp");
+const SVALBARD_BASE     = _base("data/svalbard");
+const NORTH_NORWAY_BASE = _base("data/north_norway");
+const OFFSHORE_BASE     = _base("data/offshore");
+const GREENLAND_BASE    = _base("data/greenland");
+const CANADA_BASE       = _base("data/canada");
+const ALASKA_BASE       = _base("data/alaska");
+const RUSSIA_BASE       = _base("data/russia");
+const ICELAND_BASE      = _base("data/iceland");
+const FINLAND_BASE      = _base("data/finland");
+const SWEDEN_BASE       = _base("data/sweden");
+const NORWAY_BUOYS_BASE = _base("data/norway_buoys");
 
 // Shared colour palette — one colour per item id.
 // ArctSum buoys fall back to the campaign colour via TYPE_COLORS.

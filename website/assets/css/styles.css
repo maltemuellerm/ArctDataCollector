@@ -324,62 +324,156 @@ body {
 
 /* ── Time range slider ────────────────────────────────── */
 #time-slider-box {
-  padding: .6rem 1rem .8rem;
+  padding: .75rem 1.1rem 1rem;
+  background: #f5f9fc;
+  border-top: 1px solid var(--border);
 }
-.slider-labels {
+
+.slider-toprow {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  font-size: .75rem;
+  margin-bottom: .55rem;
+}
+.slider-title {
+  font-size: .78rem;
+  font-weight: 700;
   color: var(--muted);
-  margin-bottom: .25rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
 }
-#slider-range-label { font-weight: 700; color: var(--accent); }
-.dual-slider {
+.slider-range-badge {
+  font-size: .78rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 99px;
+  padding: .15rem .65rem;
+  min-width: 3rem;
+  text-align: center;
+}
+
+/* Date input row */
+.slider-date-row {
+  display: flex;
+  align-items: flex-end;
+  gap: .6rem;
+  margin-bottom: .65rem;
+  flex-wrap: wrap;
+}
+.slider-date-field {
+  display: flex;
+  flex-direction: column;
+  gap: .18rem;
+}
+.slider-date-label {
+  font-size: .68rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.slider-date-input {
+  font-family: inherit;
+  font-size: .82rem;
+  padding: .32rem .55rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  background: #fff;
+  cursor: pointer;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.slider-date-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(11,107,138,.18);
+}
+.slider-date-sep {
+  color: var(--muted);
+  font-size: 1rem;
+  padding-bottom: .3rem;
+  user-select: none;
+}
+
+/* Dual-thumb range slider */
+.dual-slider-wrap {
   position: relative;
-  height: 24px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  margin: 0 .5rem;
 }
-.dual-slider input[type=range] {
+.dual-slider-track {
+  position: absolute;
+  left: 0; right: 0;
+  height: 6px;
+  background: #d0dde6;
+  border-radius: 3px;
+}
+.dual-slider-fill {
+  position: absolute;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 3px;
+  left: 0; width: 100%;
+}
+.dual-range-input {
   position: absolute;
   width: 100%;
   pointer-events: none;
   appearance: none;
   -webkit-appearance: none;
   background: none;
-  top: 0; left: 0;
-  height: 24px;
+  height: 36px;
   margin: 0;
+  padding: 0;
 }
-.dual-slider input[type=range]::-webkit-slider-runnable-track {
-  height: 4px;
-  background: #d0dde6;
-  border-radius: 2px;
+.dual-range-input::-webkit-slider-runnable-track {
+  height: 6px;
+  background: transparent;
 }
-.dual-slider input[type=range]::-webkit-slider-thumb {
+.dual-range-input::-webkit-slider-thumb {
   appearance: none;
   -webkit-appearance: none;
   pointer-events: auto;
-  width: 16px; height: 16px;
+  width: 20px; height: 20px;
   border-radius: 50%;
   background: var(--accent);
-  border: 2px solid #fff;
-  box-shadow: 0 1px 4px rgba(0,0,0,.25);
-  margin-top: -6px;
-  cursor: pointer;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 6px rgba(0,0,0,.28);
+  cursor: grab;
+  margin-top: -7px;
+  transition: background .15s, transform .12s;
 }
-.dual-slider input[type=range]::-moz-range-track {
-  height: 4px;
-  background: #d0dde6;
-  border-radius: 2px;
+.dual-range-input::-webkit-slider-thumb:active { cursor: grabbing; transform: scale(1.15); }
+.dual-range-input:focus::-webkit-slider-thumb {
+  outline: 2px solid var(--accent2);
+  outline-offset: 2px;
+}
+.dual-range-input::-moz-range-track {
+  height: 6px;
+  background: transparent;
   border: none;
 }
-.dual-slider input[type=range]::-moz-range-thumb {
+.dual-range-input::-moz-range-thumb {
   pointer-events: auto;
-  width: 14px; height: 14px;
+  width: 18px; height: 18px;
   border-radius: 50%;
   background: var(--accent);
-  border: 2px solid #fff;
-  box-shadow: 0 1px 4px rgba(0,0,0,.25);
-  cursor: pointer;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 6px rgba(0,0,0,.28);
+  cursor: grab;
+}
+
+/* Axis labels below slider */
+.slider-axis-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: .7rem;
+  color: var(--muted);
+  margin-top: .35rem;
+  padding: 0 .5rem;
 }
 
 /* ── Traffic-light data-quality dot ───────────────────── */

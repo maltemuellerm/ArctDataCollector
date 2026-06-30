@@ -53,6 +53,40 @@
           </label>
 
         </div>
+
+        <!-- Verification period slider ──────────────────────────────────── -->
+        <div id="vrf-time-slider-box">
+          <div class="slider-toprow">
+            <span class="slider-title">&#128197; Verification period</span>
+            <span id="vrf-slider-range-label" class="slider-range-badge"></span>
+          </div>
+          <div class="slider-date-row">
+            <div class="slider-date-field">
+              <label for="vrf-date-start-input" class="slider-date-label">From</label>
+              <input type="date" id="vrf-date-start-input" class="slider-date-input" />
+            </div>
+            <span class="slider-date-sep" aria-hidden="true">&#8594;</span>
+            <div class="slider-date-field">
+              <label for="vrf-date-end-input" class="slider-date-label">To</label>
+              <input type="date" id="vrf-date-end-input" class="slider-date-input" />
+            </div>
+            <span id="vrf-slider-period-hint" class="vrf-period-hint"></span>
+          </div>
+          <div class="dual-slider-wrap" role="group" aria-label="Verification date range slider">
+            <div class="dual-slider-track">
+              <div class="dual-slider-fill" id="vrf-slider-fill"></div>
+            </div>
+            <input type="range" id="vrf-slider-lo" min="0" max="1" step="1" value="0"
+                   class="dual-range-input" aria-label="Start date" />
+            <input type="range" id="vrf-slider-hi" min="0" max="1" step="1" value="1"
+                   class="dual-range-input" aria-label="End date" />
+          </div>
+          <div class="slider-axis-labels">
+            <span id="vrf-slider-start-label"></span>
+            <span id="vrf-slider-end-label"></span>
+          </div>
+        </div>
+
         <div class="vrf-meta" id="vrf-meta"></div>
       </section>
 
@@ -63,9 +97,10 @@
           <label class="vrf-label">
             Model
             <div class="vrf-group-btns" id="map-model-btns">
-              <button class="vrf-grp-btn active" data-model="arome">AROME</button>
+              <button class="vrf-grp-btn active" data-model="arome">AROME Arctic</button>
               <button class="vrf-grp-btn" data-model="ifs">IFS</button>
-              <button class="vrf-grp-btn" data-model="aifs">AIFS</button>              <button class="vrf-grp-btn" data-model="ifs_exp">IFS exp</button>            </div>
+              <button class="vrf-grp-btn" data-model="aifs">AIFS</button>
+            </div>
           </label>
           <label class="vrf-label">
             Colour by
@@ -97,10 +132,9 @@
         <h2 class="vrf-card-title">Observation vs. model (scatter)</h2>
         <div class="vrf-scatter-controls">
           <span class="vrf-label">Models</span>
-          <label class="vrf-check-label"><input type="checkbox" id="chk-arome"   checked> AROME</label>
+          <label class="vrf-check-label"><input type="checkbox" id="chk-arome"   checked> AROME Arctic</label>
           <label class="vrf-check-label"><input type="checkbox" id="chk-ifs"     checked> IFS</label>
           <label class="vrf-check-label"><input type="checkbox" id="chk-aifs"    checked> AIFS</label>
-          <label class="vrf-check-label"><input type="checkbox" id="chk-ifs_exp" checked> IFS exp</label>
         </div>
         <div id="scatter-plot" class="vrf-plot vrf-scatter-plot"></div>
       </section>
@@ -126,19 +160,20 @@
           <strong>IFS&nbsp;HRES 0.1&deg;</strong>
           (00&nbsp;Z and 12&nbsp;Z, hourly steps, 72&nbsp;h),
           <strong>AIFS 0.1&deg;</strong>
-          (00&nbsp;Z and 12&nbsp;Z, 6-hourly steps, 72&nbsp;h),
-          <strong>IFS experimental 0.1&deg;</strong>
-          (00&nbsp;Z and 12&nbsp;Z, hourly steps, 72&nbsp;h, expver&nbsp;80).
+          (00&nbsp;Z and 12&nbsp;Z, 6-hourly steps, 72&nbsp;h).
           ECMWF models downloaded on 0.1&deg; regular grid (closest to the IFS native O1280 &asymp;&nbsp;9&nbsp;km resolution).
           BIAS&nbsp;= mean(model&minus;obs) — positive means model too high.
           MAE&nbsp;= mean absolute error.
           RMSE&nbsp;= root-mean-square error.
           Statistics updated daily.
+          The <em>Verification period</em> selector reloads pre-generated period-specific statistics
+          (e.g.&nbsp;<code>verification_ifs_30d.json</code>); if a period-specific file is not yet available
+          the page falls back to all-time statistics.
         </p>
       </section>
 
     </main>
 
-    <script src="assets/js/verification.js"></script>
+    <script src="assets/js/verification.js?v=20260619d"></script>
   </body>
 </html>

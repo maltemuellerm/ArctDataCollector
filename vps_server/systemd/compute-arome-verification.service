@@ -7,7 +7,11 @@ Wants=network-online.target
 Type=oneshot
 User=root
 WorkingDirectory=/opt/arct-collector
+# Main run: last 30 days (verification.json)
 ExecStart=/opt/arct-collector/.venv/bin/python3 /opt/arct-collector/scripts/compute_arome_verification.py
+# Period-specific runs: re-aggregate cached pairs for shorter windows (fast)
+ExecStart=/opt/arct-collector/.venv/bin/python3 /opt/arct-collector/scripts/compute_arome_verification.py --days 14 --suffix _14d --cache-only
+ExecStart=/opt/arct-collector/.venv/bin/python3 /opt/arct-collector/scripts/compute_arome_verification.py --days 7  --suffix _7d  --cache-only
 StandardOutput=append:/opt/arct-collector/logs/arome_verification.log
 StandardError=append:/opt/arct-collector/logs/arome_verification.log
 Environment=PYTHONUNBUFFERED=1

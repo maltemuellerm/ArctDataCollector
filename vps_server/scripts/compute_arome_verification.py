@@ -515,7 +515,7 @@ def _compute_verification(all_pairs: list[dict]) -> dict:
     pairs_by: dict[str, dict[str, list[tuple]]] = defaultdict(lambda: defaultdict(list))
     for p in all_pairs:
         pairs_by[p["source"]][p["variable"]].append(
-            (p["obs"], p["model"], p["lead_h"], p.get("lat"), p.get("lon")))
+            (p["obs"], p["model"], p["lead_h"], p.get("lat"), p.get("lon"), p.get("time", "")))
 
     stats_out: dict[str, dict] = {}
     scatter_out: dict[str, dict] = {}
@@ -560,6 +560,7 @@ def _compute_verification(all_pairs: list[dict]) -> dict:
                 "lead":  [round(t[2], 2) for t in triplets],
                 "lat":   [t[3] for t in triplets],
                 "lon":   [t[4] for t in triplets],
+                "time":  [t[5] for t in triplets],
             }
 
     return {"stats": stats_out, "scatter": scatter_out,
@@ -576,6 +577,9 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Compute AROME Arctic verification.")
     parser.add_argument("--days",    type=int, default=30,
                         help="Number of days to look back (default: 30)")
+    parser.add_argument("--suffix",  type=str, default="",
+                        help="Suffix appended to output filename before .json "
+                             "(e.g. '_7d' → verification_7d.json). Default: empty = verification.json")
     parser.add_argument("--obs-dir", type=Path,
                         default=_BASE_DIR / "data" / "processed" / "csv",
                         help="Root directory for observation CSVs")
@@ -586,7 +590,99 @@ def _parse_args() -> argparse.Namespace:
                         help="Reprocess all AROME runs (ignore cache)")
     parser.add_argument("--log-level", default="INFO",
                         choices=["DEBUG", "INFO", "WARNING", "ERROR"])
+    parser.add_argument(
+        "--cache-only", action="store_true", dest="cache_only",
+        help="Skip THREDDS downloads; slice the main verification.json for the suffix period."
+    )
     return parser.parse_args()
+
+
+def _slice_arome_main_json(
+    out_dir: Path,
+    now:     datetime,
+    suffix:  str,
+    days:    int,
+) -> bool:
+    """Slice the main verification.json to produce a period-specific file."""
+    main_file = out_dir / "verification.json"
+    if not main_file.exists():
+        logger.warning("Main file %s not found – cannot slice for %s", main_file, suffix)
+        return False
+    try:
+        main_data = json.loads(main_file.read_text(encoding="utf-8"))
+    except Exception as exc:
+        logger.warning("Failed to read %s: %s", main_file, exc)
+        return False
+
+    scatter = main_data.get("scatter", {})
+    all_times: list[datetime] = []
+    for src_dict in scatter.values():
+        for var_dict in src_dict.values():
+            for t_str in var_dict.get("time", []):
+                try:
+                    all_times.append(datetime.fromisoformat(t_str).replace(tzinfo=timezone.utc))
+                except Exception:
+                    pass
+
+    if not all_times:
+        logger.warning("No time data in main AROME file for slicing")
+        return False
+
+    max_time    = max(all_times)
+    slice_start = max_time - timedelta(days=days)
+    logger.info("AROME slice: data up to %s, keeping last %d days (from %s)",
+                max_time.date(), days, slice_start.date())
+
+    all_pairs: list[dict] = []
+    for source, src_dict in scatter.items():
+        for variable, var_data in src_dict.items():
+            obs_vals   = var_data.get("obs", [])
+            model_vals = var_data.get("model", [])
+            lead_vals  = var_data.get("lead", [])
+            lat_vals   = var_data.get("lat", [])
+            lon_vals   = var_data.get("lon", [])
+            time_vals  = var_data.get("time", [])
+            n = min(len(obs_vals), len(model_vals), len(lead_vals), len(time_vals))
+            for i in range(n):
+                try:
+                    t = datetime.fromisoformat(time_vals[i]).replace(tzinfo=timezone.utc)
+                except Exception:
+                    continue
+                if t < slice_start:
+                    continue
+                all_pairs.append({
+                    "obs":      obs_vals[i],
+                    "model":    model_vals[i],
+                    "lead_h":   lead_vals[i],
+                    "source":   source,
+                    "variable": variable,
+                    "time":     time_vals[i],
+                    "lat":      lat_vals[i] if i < len(lat_vals) else None,
+                    "lon":      lon_vals[i] if i < len(lon_vals) else None,
+                })
+
+    logger.info("AROME sliced %d pairs for last %d days", len(all_pairs), days)
+    if not all_pairs:
+        logger.warning("No pairs after slicing – skipping %s", suffix)
+        return False
+
+    result   = _compute_verification(all_pairs)
+    output   = {
+        "generated":  now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "period":     {"start": slice_start.date().isoformat(), "end": max_time.date().isoformat()},
+        "groupings":  {k: [{"lo": lo, "hi": hi, "label": lbl} for lo, hi, lbl in buckets]
+                       for k, buckets in _GROUPINGS.items()},
+        "variables":  _VAR_META,
+        "domain":     main_data.get("domain", []),
+        "stats":      result["stats"],
+        "scatter":    result["scatter"],
+        "timeseries": result.get("timeseries", {}),
+        "variogram":  result.get("variogram", {}),
+    }
+    out_file = out_dir / f"verification{suffix}.json"
+    out_file.write_text(json.dumps(output, ensure_ascii=False, indent=None), encoding="utf-8")
+    logger.info("Wrote %s (%.1f KB)", out_file, out_file.stat().st_size / 1024)
+    return True
 
 
 def main() -> None:
@@ -599,6 +695,12 @@ def main() -> None:
     out_dir  = args.out_dir
     runs_dir = out_dir / "runs"
     runs_dir.mkdir(parents=True, exist_ok=True)
+
+    # Fast-path: slice existing main JSON for period-specific output
+    if args.cache_only and args.suffix:
+        now = datetime.now(tz=timezone.utc).replace(minute=0, second=0, microsecond=0)
+        _slice_arome_main_json(out_dir, now, args.suffix, args.days)
+        return
 
     now   = datetime.now(tz=timezone.utc).replace(minute=0, second=0, microsecond=0)
     start = (now - timedelta(days=args.days)).replace(hour=0, minute=0)
@@ -718,21 +820,23 @@ def main() -> None:
         "variogram":  result.get("variogram", {}),
     }
 
-    out_file = out_dir / "verification.json"
+    out_file = out_dir / f"verification{args.suffix}.json"
     out_file.write_text(json.dumps(output, ensure_ascii=False, indent=None),
                         encoding="utf-8")
     logger.info("Wrote %s (%.1f KB)", out_file, out_file.stat().st_size / 1024)
 
     # Write a lightweight timeseries-only file for the map explorer overlay.
-    ts_file = out_dir / "timeseries.json"
-    ts_output = {
-        "generated":  output["generated"],
-        "model":      "AROME Arctic",
-        "timeseries": result.get("timeseries", {}),
-    }
-    ts_file.write_text(json.dumps(ts_output, ensure_ascii=False, indent=None),
-                       encoding="utf-8")
-    logger.info("Wrote %s (%.1f KB)", ts_file, ts_file.stat().st_size / 1024)
+    # Only written for the main (no-suffix) run to avoid duplicating large files.
+    if not args.suffix:
+        ts_file = out_dir / "timeseries.json"
+        ts_output = {
+            "generated":  output["generated"],
+            "model":      "AROME Arctic",
+            "timeseries": result.get("timeseries", {}),
+        }
+        ts_file.write_text(json.dumps(ts_output, ensure_ascii=False, indent=None),
+                           encoding="utf-8")
+        logger.info("Wrote %s (%.1f KB)", ts_file, ts_file.stat().st_size / 1024)
 
 
 if __name__ == "__main__":

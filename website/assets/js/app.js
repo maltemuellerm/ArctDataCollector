@@ -238,11 +238,11 @@ function rebuildCards(groups, tStart, tEnd) {
 
 // Lightweight timeseries-only files (~5–7 MB each) used for the map explorer overlay.
 // The full verification JSONs (50–60 MB) are only loaded by the verification pages.
+// _base() is provided by csv-loader.js (loaded before app.js).
 const _VRF_URLS = {
-  arome:   (IS_LOCAL ? "" : "http://148.230.70.161") + "/data/arome/timeseries.json",
-  ifs:     (IS_LOCAL ? "" : "http://148.230.70.161") + "/data/ecmwf/timeseries_ifs.json",
-  aifs:    (IS_LOCAL ? "" : "http://148.230.70.161") + "/data/ecmwf/timeseries_aifs.json",
-  ifs_exp: (IS_LOCAL ? "" : "http://148.230.70.161") + "/data/ecmwf/timeseries_ifs_exp.json",
+  arome:   _base("data/arome/timeseries.json"),
+  ifs:     _base("data/ecmwf/timeseries_ifs.json"),
+  aifs:    _base("data/ecmwf/timeseries_aifs.json"),
 };
 const _vrf = {};
 let   _vrfLoadStarted = false;
@@ -261,10 +261,9 @@ async function _loadVrfData() {
 }
 
 const _VRF_MODEL_CFG = [
-  { key: "arome",   label: "AROME",            color: "#2e5fa3" },
+  { key: "arome",   label: "AROME Arctic",      color: "#2e5fa3" },
   { key: "ifs",     label: "IFS HRES",          color: "#c44b27" },
   { key: "aifs",   label: "AIFS",              color: "#2dab6f" },
-  { key: "ifs_exp", label: "IFS experimental",  color: "#8b5cf6" },
 ];
 
 async function _renderModelForecast(item, filtered) {
@@ -275,13 +274,13 @@ async function _renderModelForecast(item, filtered) {
     container.id = "model-forecast-container";
     document.getElementById("plot-container").after(container);
   }
-  container.style.cssText = "display:none;border-top:1px solid #d0dde6;margin-top:.5rem";
+  container.innerHTML = "";
+  container.style.cssText = "border-top:1px solid #d0dde6;margin-top:.5rem;padding:.4rem 0 0";
 
   if (!_vrfLoadStarted) _loadVrfData();
 
   // Wait for all timeseries files to load (or up to 10 s if server is slow / unavailable).
   if (_vrfLoadPromise) await Promise.race([_vrfLoadPromise, new Promise(r => setTimeout(r, 10000))]);
-  if (!Object.keys(_vrf).length) return;
 
   const source  = item.type === "ship" ? "ships" : item.type;
   const instrId = item.deploymentId || item.id;
@@ -299,6 +298,7 @@ async function _renderModelForecast(item, filtered) {
   }
 
   // One coloured line per model — 0–24 h stitched forecast
+  const vrfAvailable = Object.keys(_vrf).length > 0;
   for (const { key, label, color } of _VRF_MODEL_CFG) {
     const ts = _vrf[key] && _vrf[key].timeseries &&
                _vrf[key].timeseries[source] &&
@@ -315,13 +315,18 @@ async function _renderModelForecast(item, filtered) {
       line: { color: color, width: 1.8 } });
   }
 
-  if (traces.length < 1) return;  // nothing to show
+  if (!traces.length) {
+    // Show informative note instead of a blank area
+    container.innerHTML = vrfAvailable
+      ? `<p style="font-size:.8rem;color:#888;padding:.3rem 1rem .6rem">No air temperature model data available for this station.</p>`
+      : `<p style="font-size:.8rem;color:#888;padding:.3rem 1rem .6rem">Model temperature overlay not available &mdash; <code>timeseries.json</code> files not found on server.</p>`;
+    return;
+  }
   const hasModels = traces.length >= 2;
 
-  container.style.cssText = "border-top:1px solid #d0dde6;margin-top:.5rem";
   const titleText = hasModels
     ? "Air temperature \u2014 model forecast (0\u201324 h, stitched)"
-    : "Air temperature \u2014 observations (no model data yet)";
+    : "Air temperature \u2014 observations (model data not yet available for this station)";
   Plotly.newPlot(container, traces, {
     title: { text: titleText,
              font: { size: 12 }, x: 0.02, xanchor: "left" },
@@ -381,15 +386,32 @@ async function init() {
   }
   if (days.length < 2) days.push(dMax.toISOString());
 
-  const sliderLo = document.getElementById("slider-lo");
-  const sliderHi = document.getElementById("slider-hi");
-  const startLabel = document.getElementById("slider-start-label");
-  const rangeLabel = document.getElementById("slider-range-label");
-  const endLabel   = document.getElementById("slider-end-label");
+  const sliderLo       = document.getElementById("slider-lo");
+  const sliderHi       = document.getElementById("slider-hi");
+  const sliderFill     = document.getElementById("slider-fill");
+  const startLabel     = document.getElementById("slider-start-label");
+  const rangeLabel     = document.getElementById("slider-range-label");
+  const endLabel       = document.getElementById("slider-end-label");
+  const dateStartInput = document.getElementById("date-start-input");
+  const dateEndInput   = document.getElementById("date-end-input");
 
   sliderLo.max = sliderHi.max = days.length - 1;
   sliderHi.value = days.length - 1;
-  sliderLo.value = Math.max(0, days.length - 15);  // default: last 14 days
+  sliderLo.value = Math.max(0, days.length - 31);  // default: last 30 days
+
+  // Set min/max on date inputs to bound the selectable range
+  if (dateStartInput) { dateStartInput.min = globalMin.slice(0,10); dateStartInput.max = globalMax.slice(0,10); }
+  if (dateEndInput)   { dateEndInput.min   = globalMin.slice(0,10); dateEndInput.max   = globalMax.slice(0,10); }
+
+  // Update the coloured fill between the two slider thumbs
+  function updateSliderFill() {
+    if (!sliderFill) return;
+    const lo  = parseInt(sliderLo.value);
+    const hi  = parseInt(sliderHi.value);
+    const max = parseInt(sliderHi.max) || 1;
+    sliderFill.style.left  = (lo / max * 100) + "%";
+    sliderFill.style.width = ((hi - lo) / max * 100) + "%";
+  }
 
   const cardGroups = [
     ["ship-cards",         ships],
@@ -426,8 +448,39 @@ async function init() {
     const spanDays = Math.round((new Date(tEnd) - new Date(tStart)) / 86400000);
     rangeLabel.textContent = `${spanDays} day${spanDays !== 1 ? "s" : ""}`;
 
+    // Sync date inputs
+    if (dateStartInput) dateStartInput.value = tStart.slice(0, 10);
+    if (dateEndInput)   dateEndInput.value   = tEnd.slice(0, 10);
+
+    updateSliderFill();
+
     renderMap(allItems, tStart, tEnd, selectItem);
     rebuildCards(cardGroups, tStart, tEnd);
+  }
+
+  // Snap slider to the closest day index for a given ISO date string
+  function dateToSliderIdx(isoDate) {
+    if (!isoDate) return -1;
+    const target = isoDate + "T00:00:00.000Z";
+    let best = 0;
+    for (let i = 1; i < days.length; i++) {
+      if (Math.abs(days[i].localeCompare(target)) < Math.abs(days[best].localeCompare(target))) best = i;
+    }
+    return best;
+  }
+
+  // Date input → slider
+  if (dateStartInput) {
+    dateStartInput.addEventListener("change", () => {
+      const idx = dateToSliderIdx(dateStartInput.value);
+      if (idx >= 0) { sliderLo.value = idx; onSliderChange(); }
+    });
+  }
+  if (dateEndInput) {
+    dateEndInput.addEventListener("change", () => {
+      const idx = dateToSliderIdx(dateEndInput.value);
+      if (idx >= 0) { sliderHi.value = idx; onSliderChange(); }
+    });
   }
 
   sliderLo.addEventListener("input", onSliderChange);

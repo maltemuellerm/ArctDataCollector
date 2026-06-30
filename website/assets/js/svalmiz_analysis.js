@@ -37,6 +37,13 @@ const GRAD_Z_MAX  = 0.48;   // m  deepest in-ice sensor to include in gradient f
 //                                (≈ initial ice bottom; 0.48 is the 5th sensor at
 //                                 0.12 m spacing starting from 0.00 m)
 
+// ── Surface sensible heat flux (bulk aerodynamic) constants ────────────────
+const RHO_AIR     = 1.30;   // kg m⁻³  air density at -10°C
+const CP_AIR      = 1005;   // J kg⁻¹ K⁻¹  specific heat capacity of air
+const CH_BULK     = 1.5e-3; // dimensionless, bulk heat transfer coefficient (neutral)
+const U_ASSUMED   = 5.0;    // m s⁻¹  assumed wind speed
+// H = ρ × cp × CH × U × (Tskin − Tair)  positive = upward (surface → atm)
+
 const SVALMIZ_IDS = [
   "2026_04_KVS_SvalMIZ_01", "2026_04_KVS_SvalMIZ_02", "2026_04_KVS_SvalMIZ_03",
   "2026_04_KVS_SvalMIZ_04", "2026_04_KVS_SvalMIZ_05", "2026_04_KVS_SvalMIZ_06",
@@ -158,6 +165,7 @@ async function loadAndAnalyze() {
   const statusEl   = document.getElementById("status");
   const tempNLabel = document.getElementById("temp-n-label");
   const fluxNLabel = document.getElementById("flux-n-label");
+  const shfNLabel  = document.getElementById("shf-n-label");
 
   statusEl.textContent = `Loading ${SVALMIZ_IDS.length} SvalMIZ-26 buoys\u2026`;
 
@@ -219,12 +227,19 @@ async function loadAndAnalyze() {
     }
 
     for (const [k, row] of Object.entries(tsByHour)) {
-      if (!bins[k]) bins[k] = { airTemps: [], skinTemps: [], fluxes: [] };
+      if (!bins[k]) bins[k] = { airTemps: [], skinTemps: [], fluxes: [], shfs: [] };
 
       const at = parseFloat(row.air_temp);
       const st = parseFloat(row.skin_temp);
       if (isFinite(at)) bins[k].airTemps.push(at);
       if (isFinite(st)) bins[k].skinTemps.push(st);
+
+      // Surface sensible heat flux (bulk aerodynamic approximation)
+      // H = ρ × cp × CH × U × (Tskin − Tair)  [W m⁻², positive = upward]
+      if (isFinite(at) && isFinite(st)) {
+        const shf = RHO_AIR * CP_AIR * CH_BULK * U_ASSUMED * (st - at);
+        bins[k].shfs.push(shf);
+      }
 
       // Conductive flux — requires temp profile at the same hour
       if (iceCols.length >= 2) {
@@ -244,19 +259,24 @@ async function loadAndAnalyze() {
   const airMean = [], airStd = [];
   const skinMean = [], skinStd = [];
   const fluxMean = [], fluxStd = [], fluxCount = [];
-  let maxN = 0;
+  const shfMean = [], shfStd = [], shfCount = [];
+  let maxN = 0, maxNShf = 0;
 
   for (const k of keys) {
     const b  = bins[k];
     const sa = _stats(b.airTemps);
     const ss = _stats(b.skinTemps);
     const sf = _stats(b.fluxes);
+    const sh = _stats(b.shfs);
 
     airMean.push(sa.mean);   airStd.push(sa.std);
     skinMean.push(ss.mean);  skinStd.push(ss.std);
     fluxMean.push(sf.mean);  fluxStd.push(sf.std);
     fluxCount.push(sf.n);
+    shfMean.push(sh.mean);   shfStd.push(sh.std);
+    shfCount.push(sh.n);
     if (sf.n > maxN) maxN = sf.n;
+    if (sh.n > maxNShf) maxNShf = sh.n;
   }
 
   // ── 5. Build Stefan law model from ensemble mean air temperature ──────────
@@ -266,18 +286,21 @@ async function loadAndAnalyze() {
   const nOk = buoys.length;
   tempNLabel.textContent = `${nOk} / ${SVALMIZ_IDS.length} buoys loaded`;
   fluxNLabel.textContent = `up to ${maxN} buoys per hour \u00b7 in-ice sensors z\u2009=\u20090.00\u2013${GRAD_Z_MAX.toFixed(2)}\u2009m \u00b7 k\u2090\u1d35\u2091\u2009=\u2009${K_ICE}\u2009W\u2009m\u207b\u00b9\u2009K\u207b\u00b9`;
+  shfNLabel.textContent = `up to ${maxNShf} buoys per hour \u00b7 U\u2009=\u2009${U_ASSUMED}\u2009m\u2009s\u207b\u00b9 (assumed) \u00b7 C\u2095\u2009=\u2009${(CH_BULK * 1e3).toFixed(1)}\u00d710\u207b\u00b3`;
 
   // Reveal cards BEFORE rendering so Plotly can measure the true container width
   statusEl.style.display = "none";
   document.getElementById("method-card").style.display  = "";
   document.getElementById("temp-card").style.display    = "";
   document.getElementById("flux-card").style.display    = "";
+  document.getElementById("shf-card").style.display     = "";
   document.getElementById("stefan-card").style.display  = "";
 
   // Use rAF to let the browser paint the revealed cards before Plotly measures them
   requestAnimationFrame(() => {
     _renderTempPlot(times, airMean, airStd, skinMean, skinStd, buoys.length);
     _renderFluxPlot(times, fluxMean, fluxStd, fluxCount, buoys.length, iceCols);
+    _renderShfPlot(times, shfMean, shfStd, shfCount, buoys.length);
     _renderStefanPlot(times, stefanThickness, airMean);
   });
 }
@@ -294,31 +317,10 @@ function _renderTempPlot(times, airMean, airStd, skinMean, skinStd, nBuoys) {
     margin: { t: 12, r: 50, b: 60, l: 68 },
     yaxis: {
       title: "Temperature (\u00b0C)",
-      zeroline: true, zerolinecolor: "#00b4d8", zerolinewidth: 1.5,
+      zeroline: true, zerolinecolor: "#888", zerolinewidth: 1,
       showgrid: true, gridcolor: "#eee",
     },
     xaxis: { title: "Date (UTC)", showgrid: true, gridcolor: "#eee" },
-    // Highlight near-freezing zone -3 to 0 °C (consistent with the heatmap colorscale)
-    shapes: [
-      {
-        type: "rect", xref: "paper", yref: "y",
-        x0: 0, x1: 1, y0: -3, y1: 0,
-        fillcolor: "rgba(0,180,216,0.07)", line: { width: 0 }, layer: "below",
-      },
-      {
-        type: "line", xref: "paper", yref: "y",
-        x0: 0, x1: 1, y0: -3, y1: -3,
-        line: { color: "#00b4d8", width: 1, dash: "dash" },
-      },
-    ],
-    annotations: [
-      {
-        xref: "paper", yref: "y", x: 1.01, y: -1.5,
-        xanchor: "left", yanchor: "middle",
-        text: "near-<br>freezing", font: { size: 9, color: "#0096c7" },
-        showarrow: false,
-      },
-    ],
     legend: { orientation: "h", y: -0.22, font: { size: 12 } },
     hovermode: "x unified",
     autosize: true,
@@ -397,6 +399,75 @@ function _renderFluxPlot(times, fluxMean, fluxStd, fluxCount, nBuoys, iceCols) {
   };
 
   Plotly.newPlot("flux-plot", traces, layout, { responsive: true, displaylogo: false });
+}
+
+// ── Surface sensible heat flux plot (bulk aerodynamic approximation) ──────
+
+function _renderShfPlot(times, shfMean, shfStd, shfCount, nBuoys) {
+  const traces = [
+    ..._bandTraces(times, shfMean, shfStd,
+      "Surface heat flux (W\u2009m\u207b\u00b2)", "#c0392b", "rgba(192,57,43,0.18)"),
+  ];
+
+  // Add buoy count to hover for the mean line
+  traces[2].customdata = shfCount;
+  traces[2].hovertemplate =
+    "%{x|%Y-%m-%d %H:00 UTC}<br>" +
+    "<b>H: %{y:.1f}\u2009W\u2009m\u207b\u00b2</b><br>" +
+    "n\u2009=\u2009%{customdata} buoys<extra></extra>";
+
+  const layout = {
+    margin: { t: 12, r: 110, b: 60, l: 80 },
+    yaxis: {
+      title: "Heat flux (W\u2009m\u207b\u00b2)",
+      range: [-50, 50],
+      zeroline: true, zerolinecolor: "#888", zerolinewidth: 1.5,
+      showgrid: true, gridcolor: "#eee",
+    },
+    xaxis: { title: "Date (UTC)", showgrid: true, gridcolor: "#eee" },
+    // Coloured zones for upward (positive) and downward (negative) flux
+    shapes: [
+      {
+        type: "rect", xref: "paper", yref: "y",
+        x0: 0, x1: 1, y0: 0, y1: 50,
+        fillcolor: "rgba(211,84,0,0.04)", line: { width: 0 }, layer: "below",
+      },
+      {
+        type: "rect", xref: "paper", yref: "y",
+        x0: 0, x1: 1, y0: -50, y1: 0,
+        fillcolor: "rgba(41,128,185,0.04)", line: { width: 0 }, layer: "below",
+      },
+    ],
+    annotations: [
+      {
+        xref: "paper", yref: "paper", x: 0.01, y: 0.97,
+        xanchor: "left", yanchor: "top",
+        text: `Bulk aerodynamic \u00b7 H\u2009=\u2009\u03c1\u2009c<sub>p</sub>\u2009C<sub>H</sub>\u2009U\u2009(T<sub>skin</sub>\u2212T<sub>air</sub>) \u00b7 U\u2009=\u2009${U_ASSUMED}\u2009m\u2009s<sup>\u22121</sup> (assumed)`,
+        font: { size: 9.5, color: "#777" }, showarrow: false,
+        bgcolor: "rgba(255,255,255,0.75)",
+      },
+      // Upward label (right-hand side, upper half)
+      {
+        xref: "paper", yref: "y", x: 1.01, y: 25,
+        xanchor: "left", yanchor: "middle",
+        text: "\u2191 upward<br>(sfc\u2192atm)",
+        font: { size: 9, color: "#d35400" }, showarrow: false,
+      },
+      // Downward label (right-hand side, lower half)
+      {
+        xref: "paper", yref: "y", x: 1.01, y: -25,
+        xanchor: "left", yanchor: "middle",
+        text: "\u2193 downward<br>(atm\u2192sfc)",
+        font: { size: 9, color: "#2980b9" }, showarrow: false,
+      },
+    ],
+    legend: { orientation: "h", y: -0.22, font: { size: 12 } },
+    hovermode: "x unified",
+    autosize: true,
+    plot_bgcolor: "#f8fbfc", paper_bgcolor: "#ffffff",
+  };
+
+  Plotly.newPlot("shf-plot", traces, layout, { responsive: true, displaylogo: false });
 }
 
 // ── Stefan law sea-ice growth model ───────────────────────────────────────

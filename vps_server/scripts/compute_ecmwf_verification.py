@@ -639,7 +639,7 @@ def _compute_verification(all_pairs: list[dict], max_lead_h: int) -> dict:
     pairs_by: dict[str, dict[str, list[tuple]]] = defaultdict(lambda: defaultdict(list))
     for p in all_pairs:
         pairs_by[p["source"]][p["variable"]].append(
-            (p["obs"], p["model"], p["lead_h"], p.get("lat"), p.get("lon"))
+            (p["obs"], p["model"], p["lead_h"], p.get("lat"), p.get("lon"), p.get("time", ""))
         )
 
     stats_out:   dict[str, dict] = {}
@@ -682,6 +682,7 @@ def _compute_verification(all_pairs: list[dict], max_lead_h: int) -> dict:
                 "lead":  [round(t[2], 2) for t in triplets],
                 "lat":   [t[3] for t in triplets],
                 "lon":   [t[4] for t in triplets],
+                "time":  [t[5] for t in triplets],
             }
 
     return {
@@ -698,6 +699,118 @@ def _compute_verification(all_pairs: list[dict], max_lead_h: int) -> dict:
 
 # ── Model run loop ─────────────────────────────────────────────────────────────
 
+def _slice_main_json(
+    model_name: str,
+    model_cfg:  dict,
+    out_dir:    Path,
+    now:        datetime,
+    suffix:     str,
+    days:       int,
+) -> bool:
+    """Fast-path: slice the main (no-suffix) verification JSON to create a period file.
+
+    Returns True if successful, False if the main file doesn't exist.
+    """
+    main_file = out_dir / f"verification_{model_name}.json"
+    if not main_file.exists():
+        logger.warning(
+            "Main file %s not found – cannot slice for %s", main_file, suffix
+        )
+        return False
+
+    try:
+        main_data = json.loads(main_file.read_text(encoding="utf-8"))
+    except Exception as exc:
+        logger.warning("Failed to read %s: %s", main_file, exc)
+        return False
+
+    # Determine date cut-off: keep only pairs where "time" >= (max_time - days)
+    scatter = main_data.get("scatter", {})
+    # Find the maximum time across all pairs in any source/variable
+    all_times: list[datetime] = []
+    for src_dict in scatter.values():
+        for var_dict in src_dict.values():
+            for t_str in var_dict.get("time", []):
+                try:
+                    all_times.append(datetime.fromisoformat(t_str).replace(tzinfo=timezone.utc))
+                except Exception:
+                    pass
+
+    if not all_times:
+        logger.warning("[%s] No time data found in main file for slicing", model_cfg["label"])
+        return False
+
+    max_time = max(all_times)
+    slice_start = max_time - timedelta(days=days)
+    logger.info(
+        "[%s] Slicing: data up to %s, keeping last %d days (from %s)",
+        model_cfg["label"], max_time.date(), days, slice_start.date()
+    )
+
+    # Rebuild all_pairs from the scatter data filtered to the time window
+    all_pairs: list[dict] = []
+    for source, src_dict in scatter.items():
+        for variable, var_data in src_dict.items():
+            obs_vals   = var_data.get("obs", [])
+            model_vals = var_data.get("model", [])
+            lead_vals  = var_data.get("lead", [])
+            lat_vals   = var_data.get("lat", [])
+            lon_vals   = var_data.get("lon", [])
+            time_vals  = var_data.get("time", [])
+            n = min(len(obs_vals), len(model_vals), len(lead_vals), len(time_vals))
+            for i in range(n):
+                try:
+                    t = datetime.fromisoformat(time_vals[i]).replace(tzinfo=timezone.utc)
+                except Exception:
+                    continue
+                if t < slice_start:
+                    continue
+                all_pairs.append({
+                    "obs":      obs_vals[i],
+                    "model":    model_vals[i],
+                    "lead_h":   lead_vals[i],
+                    "source":   source,
+                    "variable": variable,
+                    "time":     time_vals[i],
+                    "lat":      lat_vals[i] if i < len(lat_vals) else None,
+                    "lon":      lon_vals[i] if i < len(lon_vals) else None,
+                })
+
+    logger.info(
+        "[%s] Sliced %d pairs from main file for last %d days",
+        model_cfg["label"], len(all_pairs), days
+    )
+
+    if not all_pairs:
+        logger.warning("[%s] No pairs after slicing – skipping", model_cfg["label"])
+        return False
+
+    result  = _compute_verification(all_pairs, model_cfg["max_lead_h"])
+    period_end   = max_time
+    period_start = slice_start
+
+    output = {
+        "generated": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "model":     model_cfg["label"],
+        "period":    {
+            "start": period_start.date().isoformat(),
+            "end":   period_end.date().isoformat(),
+        },
+        "groupings": result["groupings"],
+        "variables": _VAR_META,
+        "domain": main_data.get("domain", []),
+        "stats":      result["stats"],
+        "scatter":    result["scatter"],
+        "timeseries": result.get("timeseries", {}),
+        "variogram":  result.get("variogram", {}),
+    }
+
+    out_file = out_dir / f"verification_{model_name}{suffix}.json"
+    out_file.write_text(json.dumps(output, ensure_ascii=False), encoding="utf-8")
+    logger.info("Wrote %s (%.1f KB)", out_file, out_file.stat().st_size / 1024)
+    return True
+
+
 def _run_model(
     model_name: str,
     model_cfg:  dict,
@@ -708,8 +821,16 @@ def _run_model(
     out_dir:    Path,
     now:        datetime,
     force:      bool,
+    suffix:     str = "",
+    cache_only: bool = False,
+    days:       int = 30,
 ) -> None:
-    """Process all runs for one model and write verification_{model_name}.json."""
+    """Process all runs for one model and write verification_{model_name}{suffix}.json."""
+    # Fast-path: when --cache-only and --suffix, slice the existing main JSON
+    if cache_only and suffix:
+        _slice_main_json(model_name, model_cfg, out_dir, now, suffix, days)
+        return
+
     runs_dir   = out_dir / f"runs_{model_name}"
     runs_dir.mkdir(parents=True, exist_ok=True)
     max_lead_h = model_cfg["max_lead_h"]
@@ -753,6 +874,10 @@ def _run_model(
                     logger.warning(
                         "Bad cache %s: %s – reprocessing", cache_file, exc
                     )
+
+            if cache_only:
+                logger.debug("--cache-only: skipping MARS download for %s", cache_file.name)
+                continue
 
             # Download from MARS into a temp file, process, then delete
             with tempfile.NamedTemporaryFile(
@@ -826,7 +951,7 @@ def _run_model(
         "variogram":  result.get("variogram", {}),
     }
 
-    out_file = out_dir / f"verification_{model_name}.json"
+    out_file = out_dir / f"verification_{model_name}{suffix}.json"
     out_file.write_text(json.dumps(output, ensure_ascii=False), encoding="utf-8")
     logger.info(
         "Wrote %s (%.1f KB)", out_file, out_file.stat().st_size / 1024
@@ -834,16 +959,18 @@ def _run_model(
 
     # Write a lightweight timeseries-only file for the map explorer overlay.
     # This avoids the map page having to download the full ~60 MB verification JSON.
-    ts_file = out_dir / f"timeseries_{model_name}.json"
-    ts_output = {
-        "generated": output["generated"],
-        "model":     output["model"],
-        "timeseries": result.get("timeseries", {}),
-    }
-    ts_file.write_text(json.dumps(ts_output, ensure_ascii=False), encoding="utf-8")
-    logger.info(
-        "Wrote %s (%.1f KB)", ts_file, ts_file.stat().st_size / 1024
-    )
+    # Only written for the main (no-suffix) run.
+    if not suffix:
+        ts_file = out_dir / f"timeseries_{model_name}.json"
+        ts_output = {
+            "generated": output["generated"],
+            "model":     output["model"],
+            "timeseries": result.get("timeseries", {}),
+        }
+        ts_file.write_text(json.dumps(ts_output, ensure_ascii=False), encoding="utf-8")
+        logger.info(
+            "Wrote %s (%.1f KB)", ts_file, ts_file.stat().st_size / 1024
+        )
 
 
 # ── CLI ────────────────────────────────────────────────────────────────────────
@@ -871,6 +998,11 @@ def _parse_args() -> argparse.Namespace:
         help="Number of days to look back (default: 30)",
     )
     p.add_argument(
+        "--suffix", type=str, default="",
+        help="Suffix appended to output filenames before .json "
+             "(e.g. '_7d' → verification_ifs_7d.json). Default: empty.",
+    )
+    p.add_argument(
         "--obs-dir", type=Path,
         default=_BASE_DIR / "data" / "processed" / "csv",
         help="Root directory for observation CSVs",
@@ -887,6 +1019,13 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument(
         "--log-level", default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+    )
+    p.add_argument(
+        "--cache-only", action="store_true",
+        help="Skip all MARS downloads; only re-aggregate already-cached run files."
+             " Use for period-specific re-runs (--suffix _7d etc.) where the main"
+             " 30-day cache already exists.",
+        dest="cache_only",
     )
     return p.parse_args()
 
@@ -938,6 +1077,9 @@ def main() -> None:
             out_dir          = args.out_dir,
             now              = now,
             force            = args.force,
+            suffix           = args.suffix,
+            cache_only       = args.cache_only,
+            days             = args.days,
         )
 
 

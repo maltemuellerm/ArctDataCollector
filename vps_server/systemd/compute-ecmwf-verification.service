@@ -7,13 +7,21 @@ Wants=network-online.target
 Type=oneshot
 User=root
 WorkingDirectory=/opt/arct-collector
+# Main run: last 30 days (verification_ifs.json, verification_aifs.json)
 ExecStart=/opt/arct-collector/.venv/bin/python3 \
     /opt/arct-collector/scripts/compute_ecmwf_verification.py \
-    --log-level INFO
+    --skip-model ifs_exp --skip-model aifs_exp --log-level INFO
+# Period-specific runs: re-aggregate cached pairs (fast, no new MARS downloads)
+ExecStart=/opt/arct-collector/.venv/bin/python3 \
+    /opt/arct-collector/scripts/compute_ecmwf_verification.py \
+    --skip-model ifs_exp --skip-model aifs_exp --days 14 --suffix _14d --cache-only --log-level INFO
+ExecStart=/opt/arct-collector/.venv/bin/python3 \
+    /opt/arct-collector/scripts/compute_ecmwf_verification.py \
+    --skip-model ifs_exp --skip-model aifs_exp --days 7  --suffix _7d  --cache-only --log-level INFO
 StandardOutput=append:/opt/arct-collector/logs/ecmwf_verification.log
 StandardError=append:/opt/arct-collector/logs/ecmwf_verification.log
 
-# MARS requests can take 10–30 min for queue + download; allow up to 24 h for forced full recompute
+# MARS requests can take 10-30 min for queue + download; allow up to 24 h for forced full recompute
 TimeoutStartSec=86400
 
 [Install]
