@@ -47,7 +47,7 @@ def _normalize_ship_rows(rows: list[dict]) -> list[dict]:
 _CONFIG_PATH  = Path(__file__).resolve().parents[3] / "config" / "ships.yaml"
 _SECRETS_PATH = Path(__file__).resolve().parents[3] / "config" / "secrets.yaml"
 _OUTPUT_DIR   = Path(__file__).resolve().parents[3] / "data" / "processed" / "csv" / "ships"
-_WINDOW_DAYS  = 30
+_WINDOW_DAYS  = 90
 
 
 def _load_config(config_path: Path = _CONFIG_PATH) -> dict:
@@ -153,7 +153,7 @@ def run(config_path: Path = _CONFIG_PATH, output_dir: Path = _OUTPUT_DIR) -> Non
                 )
             else:
                 fresh = fetch_ship_csv(wmo_id=wmo_id, url_template=url_template)
-        except RuntimeError as exc:
+        except Exception as exc:
             logger.error("Failed to fetch data for %s (%s): %s", name, wmo_id, exc)
             continue
 

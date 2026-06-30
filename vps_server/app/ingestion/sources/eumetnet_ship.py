@@ -8,6 +8,7 @@ the rows as a list of dicts ready for the handler to persist.
 import csv
 import io
 import logging
+import time
 import urllib.error
 import urllib.request
 
@@ -15,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 # EUMETNET encodes missing / unavailable values as "/" in every field.
 _MISSING = "/"
+_MAX_RETRIES = 3
+_RETRY_DELAY = 5  # seconds
 
 
 def fetch_ship_csv(wmo_id: str, url_template: str) -> list[dict]:
@@ -42,11 +45,19 @@ def fetch_ship_csv(wmo_id: str, url_template: str) -> list[dict]:
     logger.info("Fetching ship data for %s from %s", wmo_id, url)
 
     req = urllib.request.Request(url, headers={"User-Agent": "ArctDataCollector/1.0"})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as response:
-            raw_bytes = response.read()
-    except urllib.error.URLError as exc:
-        raise RuntimeError(f"Failed to fetch {url}: {exc}") from exc
+    last_exc: Exception | None = None
+    for attempt in range(1, _MAX_RETRIES + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as response:
+                raw_bytes = response.read()
+            break
+        except Exception as exc:
+            last_exc = exc
+            logger.warning("Attempt %d/%d failed for %s: %s", attempt, _MAX_RETRIES, wmo_id, exc)
+            if attempt < _MAX_RETRIES:
+                time.sleep(_RETRY_DELAY)
+    else:
+        raise RuntimeError(f"Failed to fetch {url} after {_MAX_RETRIES} attempts: {last_exc}") from last_exc
 
     text = raw_bytes.decode("utf-8", errors="replace")
     if not text.strip():
