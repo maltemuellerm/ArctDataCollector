@@ -397,7 +397,7 @@ async function init() {
 
   sliderLo.max = sliderHi.max = days.length - 1;
   sliderHi.value = days.length - 1;
-  sliderLo.value = Math.max(0, days.length - 31);  // default: last 30 days
+  sliderLo.value = Math.max(0, days.length - 91);  // default: last 90 days
 
   // Set min/max on date inputs to bound the selectable range
   if (dateStartInput) { dateStartInput.min = globalMin.slice(0,10); dateStartInput.max = globalMax.slice(0,10); }
