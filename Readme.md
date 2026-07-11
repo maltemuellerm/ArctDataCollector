@@ -1,16 +1,46 @@
 # ArctDataCollector
 
-An operational Arctic observation data collection and visualization platform. The system fetches meteorological and oceanographic data from multiple remote Arctic instruments — research ships, ice-tethered buoys, and thermistor chains — stores rolling 30-day CSV archives on a VPS, and serves them through a static interactive website with an Arctic polar-stereo map, detailed time-series plots, and NWP model verification.
+An operational Arctic observation data collection and visualization platform. The system fetches meteorological and oceanographic data from multiple remote Arctic instruments — research ships, ice-tethered buoys, thermistor chains, and Iridium-connected OpenMetBuoys — stores rolling 30-day CSV archives on a VPS, and serves them through a static interactive website with an Arctic polar-stereo map, detailed time-series plots, and NWP model verification.
 
 ---
 
 ## Architecture
 
 ```
-Remote APIs  →  VPS ingestion (Python + systemd)  →  CSV / JSON files  →  Nginx  →  Static website
+Remote APIs / RockBLOCK  →  VPS ingestion (Python + systemd)  →  CSV / JSON files  →  Nginx  →  Static website
 ```
 
-The VPS runs scheduled Python fetch jobs — one per data source. Each job downloads the latest data, deduplicates it against the stored archive, and writes the result back as a CSV. Nginx serves those files with CORS headers so the frontend can fetch them directly from any browser. There is no database and no application backend — just flat files and a well-structured JavaScript frontend.
+The VPS runs two services in parallel:
+
+1. **Scheduled Python fetch jobs** (one per data source) — download the latest observations, deduplicate against the stored archive, and write the result back as a CSV.
+2. **Flask decoder** (`/opt/decoder/main.py`) — receives Iridium messages from RockBLOCK Web Services, decodes the binary payload, and writes a live GeoJSON feed.
+
+Nginx serves all files with CORS headers so the frontend can fetch them directly from any browser. There is no database and no application backend — just flat files and a well-structured JavaScript frontend.
+
+---
+
+## RockBLOCK / OpenMetBuoy Pipeline
+
+```
+RockBLOCK Web Services
+        │  POST https://openmetbuoy-arctic.com/rockblock
+        ▼
+nginx  →  proxy_pass → 127.0.0.1:8080  (Flask decoder)
+        │
+        ├─ decodes hex payload  →  GNSS / wave / thermistor packets
+        ├─ appends entry to    /opt/decoder/master-decoded.json       (thread-safe, atomic write)
+        ├─ regenerates         /opt/decoder/decoded_fixes.geojson     (GNSS fixes only)
+        └─ copies both to      /var/www/openmetbuoy-arctic.com/       (publicly accessible)
+```
+
+Public endpoints (CORS enabled, no-cache):
+
+| URL | Content |
+|-----|---------|
+| `https://openmetbuoy-arctic.com/decoded_fixes.geojson` | GeoJSON FeatureCollection of all GPS fixes — for map viewers and QGIS |
+| `https://openmetbuoy-arctic.com/master-decoded.json` | Full raw store of every decoded message |
+
+See [`vps_server/README.md`](vps_server/README.md) for deployment details.
 
 ---
 

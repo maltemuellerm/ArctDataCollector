@@ -41,7 +41,7 @@ echo "==> Target : ${VPS_HOST}:${VPS_WEBROOT}"
 echo ""
 
 # ── 1. Sync website files ────────────────────────────────────────────────────
-echo "--- [1/4] Syncing OpenMetBuoy-Arctic site to VPS ..."
+echo "--- [1/5] Syncing OpenMetBuoy-Arctic site to VPS ..."
 ssh "${VPS_HOST}" "mkdir -p ${VPS_WEBROOT}"
 
 rsync -az --delete \
@@ -50,19 +50,24 @@ rsync -az --delete \
   --exclude="*.md" \
   --exclude="src/" \
   --exclude="server/" \
+  --exclude="*.php" \
+  --exclude="decoded_fixes.geojson" \
+  --exclude="master-decoded.json" \
+  --exclude="rockblock-decoded.log" \
   "${OMB_SRC}/" \
   "${VPS_HOST}:${VPS_WEBROOT}/"
 
 echo "    Done."
 
-# ── 2. Install nginx snippet ─────────────────────────────────────────────────
-echo "--- [2/4] Installing arct-proxy.conf nginx snippet ..."
+# ── 2. Install nginx snippets ────────────────────────────────────────────────
+echo "--- [2/5] Installing nginx snippets ..."
 ssh "${VPS_HOST}" "mkdir -p /etc/nginx/snippets"
-scp "${NGINX_DIR}/arct-proxy.conf" "${VPS_HOST}:/etc/nginx/snippets/arct-proxy.conf"
-echo "    Installed: /etc/nginx/snippets/arct-proxy.conf"
+scp "${NGINX_DIR}/arct-proxy.conf"      "${VPS_HOST}:/etc/nginx/snippets/arct-proxy.conf"
+scp "${NGINX_DIR}/rockblock-proxy.conf" "${VPS_HOST}:/etc/nginx/snippets/rockblock-proxy.conf"
+echo "    Installed: arct-proxy.conf and rockblock-proxy.conf"
 
 # ── 3. Install openmetbuoy server block ─────────────────────────────────────
-echo "--- [3/4] Installing openmetbuoy-arctic.com nginx server block ..."
+echo "--- [3/5] Installing openmetbuoy-arctic.com nginx server block ..."
 scp "${NGINX_DIR}/openmetbuoy.conf" \
   "${VPS_HOST}:/etc/nginx/sites-available/openmetbuoy-arctic.com"
 
@@ -74,21 +79,35 @@ ssh "${VPS_HOST}" "
 "
 echo "    Enabled: openmetbuoy-arctic.com"
 
-# ── 4. Test and reload nginx ─────────────────────────────────────────────────
-echo "--- [4/4] Testing and reloading nginx ..."
+# ── 4. Ensure web root data files exist ─────────────────────────────────────
+# The Flask decoder (running as root) writes decoded_fixes.geojson and
+# master-decoded.json directly to the web root via atomic rename.
+# Seed them with valid empty structures so nginx never serves a missing file.
+echo "--- [4/5] Seeding web root data files ..."
+ssh "${VPS_HOST}" "
+  [ -s ${VPS_WEBROOT}/decoded_fixes.geojson ] || \
+    echo '{\"type\":\"FeatureCollection\",\"features\":[]}' \
+      > ${VPS_WEBROOT}/decoded_fixes.geojson
+  [ -s ${VPS_WEBROOT}/master-decoded.json ] || \
+    echo '[]' > ${VPS_WEBROOT}/master-decoded.json
+"
+echo "    Done."
+
+# ── 5. Test and reload nginx ─────────────────────────────────────────────────
+echo "--- [5/5] Testing and reloading nginx ..."
 ssh "${VPS_HOST}" "nginx -t && systemctl reload nginx"
 echo "    Nginx reloaded."
 echo ""
 echo "HTTP site is live at: http://${DOMAIN}/"
 echo ""
 
-# ── 5. Optional: Certbot HTTPS ───────────────────────────────────────────────
+# ── 6. Optional: Certbot HTTPS ───────────────────────────────────────────────
 if [[ "${SKIP_CERTBOT}" -eq 1 ]]; then
   echo "--- Skipping Certbot (--skip-certbot flag set)."
   echo "    Run manually on the VPS when DNS has propagated:"
   echo "    certbot --nginx -d ${DOMAIN} -d www.${DOMAIN}"
 else
-  echo "--- [5/5] Obtaining Let's Encrypt certificate via Certbot ..."
+  echo "--- [6/6] Obtaining Let's Encrypt certificate via Certbot ..."
   echo "    (This will fail if DNS has not propagated yet.)"
   echo "    To skip this step, run with --skip-certbot"
   echo ""
